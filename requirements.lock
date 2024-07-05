@@ -11,5 +11,18 @@
 -e file:.
 click==8.1.7
     # via eyalthesinger
+colorama==0.4.6
+    # via halo
+    # via log-symbols
+halo==0.0.31
+    # via eyalthesinger
+log-symbols==0.0.14
+    # via halo
+six==1.16.0
+    # via halo
+spinners==0.0.24
+    # via halo
+termcolor==2.4.0
+    # via halo
 tqdm==4.66.4
     # via eyalthesinger

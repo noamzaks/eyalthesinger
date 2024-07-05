@@ -5,6 +5,7 @@ description = "An extensible password brute-force program"
 dependencies = [
     "click>=8.1.7",
     "tqdm>=4.66.4",
+    "halo>=0.0.31",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"

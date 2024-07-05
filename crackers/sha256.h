@@ -3,6 +3,7 @@
 /// A SHA256 brute-force cracker.
 
 #include <stdbool.h>
+#include <stdint.h>
 
 /// Checks whether the current password hashes to the given result. Assumes the
 /// result's length is 32B, like SHA256 hashes.

@@ -1,11 +1,10 @@
-# Source: https://stackoverflow.com/questions/15644964/python-progress-bar-and-downloads
-
 import urllib.request
 from typing import Optional
 
 from tqdm import tqdm
 
 
+# Source: https://stackoverflow.com/questions/15644964/python-progress-bar-and-downloads
 class DownloadProgressBar(tqdm):
     def update_to(self, b=1, bsize=1, tsize=None):
         if tsize is not None:

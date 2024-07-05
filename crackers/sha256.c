@@ -29,7 +29,7 @@ static const uint32_t k[64] = {
     0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
     0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
 
-void sha256_transform(uint32_t state[8], uint8_t data[64]) {
+static void sha256_transform(uint32_t state[8], uint8_t data[64]) {
   uint32_t a, b, c, d, e, f, g, h, i, j, t1, t2, m[64];
 
   for (i = 0, j = 0; i < 16; ++i, j += 4)
@@ -70,7 +70,7 @@ void sha256_transform(uint32_t state[8], uint8_t data[64]) {
   state[7] += h;
 }
 
-void sha256_hash(const char *x, uint8_t *hash) {
+static void sha256_hash(const char *x, uint8_t *hash) {
   uint8_t data[64];
   int length = 0;
   uint64_t bit_length = 0;
@@ -90,6 +90,8 @@ void sha256_hash(const char *x, uint8_t *hash) {
     x++;
   }
 
+  bit_length += length * 8; // add the remaining length
+
   // Pad whatever data is left in the buffer.
   if (length < 56) {
     data[length++] = 0x80;
@@ -106,7 +108,6 @@ void sha256_hash(const char *x, uint8_t *hash) {
   }
 
   // Append to the padding the total message's length in bits and transform.
-  bit_length += length * 8;
   data[63] = bit_length;
   data[62] = bit_length >> 8;
   data[61] = bit_length >> 16;
@@ -135,11 +136,6 @@ void sha256_hash(const char *x, uint8_t *hash) {
 bool sha256_check(const char *line, const char *result) {
   uint8_t hash[32];
   sha256_hash(line, hash);
-
-  for (int i = 0; i < 32; i++) {
-    printf("%x", hash[i]);
-  }
-  printf("\n");
 
   return memcmp(hash, result, 32) == 0;
 }

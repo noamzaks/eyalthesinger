@@ -7,10 +7,10 @@ The tool is based on brute-force and does not use any sort of _weakness_ in the 
 ## Features
 
 -   Cipher support
-    -   [ ] SHA256
+    -   [x] SHA256
     -   [ ] WPA2
 -   Parallelization support
-    -   [ ] CPU parallelization
+    -   [x] CPU parallelization
     -   [ ] CUDA
     -   [ ] Multiple devices
 
@@ -18,5 +18,6 @@ The tool is based on brute-force and does not use any sort of _weakness_ in the 
 
 -   Install [rye](https://rye.astral.sh/).
 -   Run `rye sync` and use the virtual environment created in `.venv` (i.e. `source .venv/bin/activate` or `.venv\Scripts\activate`).
+-   Compile the CPU crackers by running `clang -O3 crackers/*.c -o sing` (or `gcc -O3 crackers/*.c -o sing`).
 
 Eyal the Singer was built as part of the Workshop in Implementation of Cryptographic Attacks at Tel Aviv University, hosted by Dr. Eyal Ronen.
