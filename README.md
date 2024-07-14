@@ -8,6 +8,7 @@ The tool is based on brute-force and does not use any sort of _weakness_ in the 
 
 -   Cipher support
     -   [x] SHA256
+    -   [x] SHA1
     -   [ ] WPA2
 -   Parallelization support
     -   [x] CPU parallelization
