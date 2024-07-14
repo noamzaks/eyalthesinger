@@ -1,11 +1,13 @@
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "sha1.h"
 #include "sha256.h"
 
-#define MAX_PASSWORD_SIZE 1024
+#define MAX_LINE_LENGTH 1024
 
 #define EXIT_SUCCESS 0
 #define EXIT_FINISHED 1 // finished going over wordlist but password not found
@@ -27,7 +29,7 @@ static char hex_values[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
 };
 
-static void load_hexdump(const char *hexdump, char *data) {
+static void load_hex(const char *hexdump, char *data) {
   while (*hexdump != '\0') {
     assert(('0' <= *hexdump && *hexdump <= '9') ||
            ('a' <= *hexdump && *hexdump <= 'f'));
@@ -48,6 +50,29 @@ void handle_sigint(int signal) {
   exit(EXIT_INTERRUPTED);
 }
 
+static inline int get_line(char *line) {
+  char *current = line;
+  char c = getchar();
+  while (c != EOF && c != '\n') {
+    *current = c;
+    current++;
+
+    if (current == line + MAX_LINE_LENGTH) {
+      fprintf(stderr, "max password limit exceeded on line %d\n",
+              current_line + 1);
+      exit(-1);
+    }
+
+    c = getchar();
+  }
+  if (c == EOF) {
+    exit(EXIT_FINISHED);
+  }
+
+  *current = '\0';
+  return current - line;
+}
+
 int main(int argc, char *argv[]) {
   signal(SIGINT, handle_sigint);
 
@@ -56,32 +81,36 @@ int main(int argc, char *argv[]) {
     exit(-1);
   }
 
-  char password[MAX_PASSWORD_SIZE];
+  char password[MAX_LINE_LENGTH];
 
   if (strcmp(argv[1], "sha256") == 0) {
-    assert(strlen(argv[2]) == 64);
-    char result[32];
-    load_hexdump(argv[2], result);
+    assert(strlen(argv[2]) == SHA256_LENGTH * 2);
+    char result[SHA256_LENGTH];
+    load_hex(argv[2], result);
 
     while (true) {
-      char *current = password;
-      char c;
-      while ((c = getchar()) != EOF && c != '\n') {
-        *current = c;
-        current++;
+      int password_length = get_line(password);
 
-        if (current == password + MAX_PASSWORD_SIZE) {
-          fprintf(stderr, "max password limit exceeded on line %d\n",
-                  current_line + 1);
-          exit(-1);
-        }
+      char hash[SHA256_LENGTH];
+      sha256(password, hash);
+      if (memcmp(result, hash, SHA256_LENGTH) == 0) {
+        printf("%s\n", password);
+        break;
       }
-      if (c == EOF) {
-        exit(EXIT_FINISHED);
-      }
-      *current = '\0';
 
-      if (sha256_check(password, result)) {
+      current_line++;
+    }
+  } else if (strcmp(argv[1], "sha1") == 0) {
+    assert(strlen(argv[2]) == SHA1_LENGTH * 2);
+    char result[SHA1_LENGTH];
+    load_hex(argv[2], result);
+
+    while (true) {
+      int password_length = get_line(password);
+
+      char hash[SHA1_LENGTH];
+      sha1(password, password_length, hash);
+      if (memcmp(result, hash, SHA1_LENGTH) == 0) {
         printf("%s\n", password);
         break;
       }

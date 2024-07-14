@@ -29,17 +29,17 @@ def crack(cipher: str, wordlist: str, hash: str, jobs: int):
     spinner.start()
     start = time.time()
 
-    with open(wordlist, "r") as f:
-        lines = f.read().split("\n")
+    with open(wordlist, "rb") as f:
+        lines = f.read().split(b"\n")
 
     process_line_counts = len(lines) // jobs + 1
 
     processes: List[subprocess.Popen] = []
     for thread_number in range(jobs):
         wordlist_name = f"wordlist{thread_number}.txt"
-        with open(wordlist_name, "w") as f:
+        with open(wordlist_name, "wb") as f:
             f.write(
-                "\n".join(
+                b"\n".join(
                     lines[
                         process_line_counts * thread_number : process_line_counts
                         * (thread_number + 1)
@@ -68,7 +68,7 @@ def crack(cipher: str, wordlist: str, hash: str, jobs: int):
             if process.poll() == 0:
                 end = time.time()
                 spinner.succeed(
-                    f"Finished in {end - start :.2f}s ({end - preprocessing_end :.2f}s discarding preprocessing)."
+                    f"Finished in {end - start :.2f}s ({end - preprocessing_end :.2f}s without preprocessing)."
                 )
                 print(f"Found password {process.stdout.read().strip()}.")
                 for process in processes:

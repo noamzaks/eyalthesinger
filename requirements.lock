@@ -7,17 +7,26 @@
 #   all-features: false
 #   with-sources: false
 #   generate-hashes: false
+#   universal: false
 
 -e file:.
+cffi==1.16.0
+    # via cryptography
 click==8.1.7
     # via eyalthesinger
 colorama==0.4.6
     # via halo
     # via log-symbols
+cryptography==42.0.8
+    # via eyalthesinger
 halo==0.0.31
     # via eyalthesinger
 log-symbols==0.0.14
     # via halo
+pycparser==2.22
+    # via cffi
+scapy==2.6.0rc1
+    # via eyalthesinger
 six==1.16.0
     # via halo
 spinners==0.0.24

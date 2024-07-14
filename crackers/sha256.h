@@ -1,10 +1,9 @@
 #pragma once
 
-/// A SHA256 brute-force cracker.
-
-#include <stdbool.h>
 #include <stdint.h>
 
-/// Checks whether the current password hashes to the given result. Assumes the
-/// result's length is 32B, like SHA256 hashes.
-bool sha256_check(const char *password, const char *result);
+#define SHA256_LENGTH 32
+
+/// Calculates the SHA256 hash of the given null-terminated string in `data`
+/// into `result`.
+void sha256(const char *data, char result[SHA256_LENGTH]);

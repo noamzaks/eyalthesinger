@@ -70,72 +70,65 @@ static void sha256_transform(uint32_t state[8], uint8_t data[64]) {
   state[7] += h;
 }
 
-static void sha256_hash(const char *x, uint8_t *hash) {
-  uint8_t data[64];
+void sha256(const char *data, char result[SHA256_LENGTH]) {
+  uint8_t current_data[64];
   int length = 0;
   uint64_t bit_length = 0;
   uint32_t state[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
                        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
 
-  while (*x != '\0') {
-    data[length] = *x;
+  while (*data != '\0') {
+    current_data[length] = *data;
     length++;
 
     if (length == 64) {
-      sha256_transform(state, data);
+      sha256_transform(state, current_data);
       bit_length += 512;
       length = 0;
     }
 
-    x++;
+    data++;
   }
 
   bit_length += length * 8; // add the remaining length
 
   // Pad whatever data is left in the buffer.
   if (length < 56) {
-    data[length++] = 0x80;
+    current_data[length++] = 0x80;
     while (length < 56) {
-      data[length++] = 0x00;
+      current_data[length++] = 0x00;
     }
   } else {
-    data[length++] = 0x80;
+    current_data[length++] = 0x80;
     while (length < 64) {
-      data[length++] = 0x00;
+      current_data[length++] = 0x00;
     }
-    sha256_transform(state, data);
-    memset(data, 0, 56);
+    sha256_transform(state, current_data);
+    memset(current_data, 0, 56);
   }
 
   // Append to the padding the total message's length in bits and transform.
-  data[63] = bit_length;
-  data[62] = bit_length >> 8;
-  data[61] = bit_length >> 16;
-  data[60] = bit_length >> 24;
-  data[59] = bit_length >> 32;
-  data[58] = bit_length >> 40;
-  data[57] = bit_length >> 48;
-  data[56] = bit_length >> 56;
-  sha256_transform(state, data);
+  current_data[63] = bit_length;
+  current_data[62] = bit_length >> 8;
+  current_data[61] = bit_length >> 16;
+  current_data[60] = bit_length >> 24;
+  current_data[59] = bit_length >> 32;
+  current_data[58] = bit_length >> 40;
+  current_data[57] = bit_length >> 48;
+  current_data[56] = bit_length >> 56;
+  sha256_transform(state, current_data);
 
   // Since this implementation uses little endian byte ordering and SHA uses big
   // endian, reverse all the bytes when copying the final state to the output
   // hash.
   for (int i = 0; i < 4; i++) {
-    hash[i] = (state[0] >> (24 - i * 8)) & 0x000000ff;
-    hash[i + 4] = (state[1] >> (24 - i * 8)) & 0x000000ff;
-    hash[i + 8] = (state[2] >> (24 - i * 8)) & 0x000000ff;
-    hash[i + 12] = (state[3] >> (24 - i * 8)) & 0x000000ff;
-    hash[i + 16] = (state[4] >> (24 - i * 8)) & 0x000000ff;
-    hash[i + 20] = (state[5] >> (24 - i * 8)) & 0x000000ff;
-    hash[i + 24] = (state[6] >> (24 - i * 8)) & 0x000000ff;
-    hash[i + 28] = (state[7] >> (24 - i * 8)) & 0x000000ff;
+    result[i] = (state[0] >> (24 - i * 8)) & 0x000000ff;
+    result[i + 4] = (state[1] >> (24 - i * 8)) & 0x000000ff;
+    result[i + 8] = (state[2] >> (24 - i * 8)) & 0x000000ff;
+    result[i + 12] = (state[3] >> (24 - i * 8)) & 0x000000ff;
+    result[i + 16] = (state[4] >> (24 - i * 8)) & 0x000000ff;
+    result[i + 20] = (state[5] >> (24 - i * 8)) & 0x000000ff;
+    result[i + 24] = (state[6] >> (24 - i * 8)) & 0x000000ff;
+    result[i + 28] = (state[7] >> (24 - i * 8)) & 0x000000ff;
   }
-}
-
-bool sha256_check(const char *line, const char *result) {
-  uint8_t hash[32];
-  sha256_hash(line, hash);
-
-  return memcmp(hash, result, 32) == 0;
 }
