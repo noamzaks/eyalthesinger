@@ -4,6 +4,8 @@ This is a password-cracking tool built for paralellization across CPU, GPU and p
 
 The tool is based on brute-force and does not use any sort of _weakness_ in the underlying mechanisms.
 
+⚠️ This is created for educational purposes only. The code is provided without any guarantees and the person running the code bears all responsibility.
+
 ## Features
 
 -   Cipher support
