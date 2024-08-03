@@ -2,9 +2,6 @@ import logging
 
 import click
 
-from eyalthesinger.crack import crack
-from eyalthesinger.download import download
-
 
 @click.group()
 def cli():
@@ -12,11 +9,15 @@ def cli():
 
 
 def main() -> int:
-    logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
+    logging.getLogger("scapy").setLevel(logging.CRITICAL)
+
+    from eyalthesinger.crack import crack
+    from eyalthesinger.download import download
+    from eyalthesinger.format import format
 
     cli.add_command(download)
     cli.add_command(crack)
+    cli.add_command(format)
     cli()
 
-    return 0
     return 0

@@ -6,6 +6,8 @@
 
 #include "sha1.h"
 #include "sha256.h"
+#include "utilities.h"
+#include "wpa.h"
 
 #define MAX_LINE_LENGTH 1024
 
@@ -76,11 +78,6 @@ static inline int get_line(char *line) {
 int main(int argc, char *argv[]) {
   signal(SIGINT, handle_sigint);
 
-  if (argc != 3) {
-    fprintf(stderr, "usage: %s cipher hash\n", argv[0]);
-    exit(-1);
-  }
-
   char password[MAX_LINE_LENGTH];
 
   if (strcmp(argv[1], "sha256") == 0) {
@@ -111,6 +108,42 @@ int main(int argc, char *argv[]) {
       char hash[SHA1_LENGTH];
       sha1(password, password_length, hash);
       if (memcmp(result, hash, SHA1_LENGTH) == 0) {
+        printf("%s\n", password);
+        break;
+      }
+
+      current_line++;
+    }
+  } else if (strcmp(argv[1], "wpa") == 0) {
+    char *ssid = assert_malloc(strlen(argv[2]) / 2);
+    load_hex(argv[2], ssid);
+    char client_mac[MAC_LENGTH];
+    assert(strlen(argv[3]) == MAC_LENGTH * 2);
+    load_hex(argv[3], client_mac);
+    char server_mac[MAC_LENGTH];
+    assert(strlen(argv[4]) == MAC_LENGTH * 2);
+    load_hex(argv[4], server_mac);
+    char client_nonce[NONCE_LENGTH];
+    assert(strlen(argv[5]) == NONCE_LENGTH * 2);
+    load_hex(argv[5], client_nonce);
+    char server_nonce[NONCE_LENGTH];
+    assert(strlen(argv[6]) == NONCE_LENGTH * 2);
+    load_hex(argv[6], server_nonce);
+    int second_packet_length = strlen(argv[7]) / 2;
+    char *second_packet = assert_malloc(second_packet_length);
+    load_hex(argv[7], second_packet);
+    char result[MIC_LENGTH];
+    assert(strlen(argv[8]) == MIC_LENGTH * 2);
+    load_hex(argv[8], result);
+
+    while (true) {
+      int password_length = get_line(password);
+
+      char hash[MIC_LENGTH];
+      mic(password, password_length, ssid, client_mac, server_mac, client_nonce,
+          server_nonce, second_packet, second_packet_length, hash);
+
+      if (memcmp(result, hash, MIC_LENGTH) == 0) {
         printf("%s\n", password);
         break;
       }

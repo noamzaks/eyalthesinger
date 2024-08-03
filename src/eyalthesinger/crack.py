@@ -54,7 +54,7 @@ def crack(cipher: str, wordlist: str, hash: str, jobs: int):
         with open(wordlist_name, "r") as f:
             processes.append(
                 subprocess.Popen(
-                    ["./sing", cipher, hash],
+                    ["./sing", cipher] + hash.split(":"),
                     stdin=f,
                     stdout=subprocess.PIPE,
                 )
