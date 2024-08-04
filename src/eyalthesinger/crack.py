@@ -45,6 +45,7 @@ def crack(cipher: str, wordlist: str, hash: str, jobs: int):
                         * (thread_number + 1)
                     ]
                 )
+                + b"\n"
             )
 
     preprocessing_end = time.time()
@@ -65,12 +66,15 @@ def crack(cipher: str, wordlist: str, hash: str, jobs: int):
     for _ in processes:
         os.wait()
         for process in processes:
-            if process.poll() == 0:
+            if (
+                process.poll() == 0
+                and len(output := process.stdout.read().strip()) != 0
+            ):
                 end = time.time()
                 spinner.succeed(
                     f"Finished in {end - start :.2f}s ({end - preprocessing_end :.2f}s without preprocessing)."
                 )
-                print(f"Found password {process.stdout.read().strip()}.")
+                print(f"Found password {output}.")
                 for process in processes:
                     process.kill()
                 return
