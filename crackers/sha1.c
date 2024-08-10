@@ -7,7 +7,7 @@
 
 #define ROTLEFT(a, b) (((a) << (b)) | ((a) >> (32 - (b))))
 
-void sha1(const char *data, int data_length, char result[SHA1_LENGTH]) {
+void sha1(const char *data, int data_length, char result[SHA_DIGEST_LENGTH]) {
   uint32_t W[80];
   uint32_t H[] = {0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0};
   uint32_t a;

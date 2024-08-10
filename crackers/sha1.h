@@ -1,6 +1,6 @@
 #pragma once
 
-#define SHA1_LENGTH 20
+#define SHA_DIGEST_LENGTH 20
 
 #include <stdint.h>
 
@@ -9,7 +9,7 @@
 ///
 /// `data_length` should be the length in bytes of the data, e.g. using
 /// `strlen`.
-void sha1(const char *data, int data_length, char result[SHA1_LENGTH]);
+void sha1(const char *data, int data_length, char result[SHA_DIGEST_LENGTH]);
 
 struct sha1_ctx {
     uint32_t H[5];

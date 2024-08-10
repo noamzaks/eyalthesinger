@@ -2,12 +2,17 @@
 
 // TODO: sort this out
 // TODO: use our (fast) cryptography implementation
-#include <openssl/evp.h>
-#include <openssl/hmac.h>
-#include <openssl/sha.h>
+// #include <openssl/evp.h>
+// #include <openssl/hmac.h>
+// #include <openssl/sha.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "crackers/sha1.h"
+#include "crackers/sha256.h"
+#include "crackers/hmac.h"
+#include "crackers/pbkdf2.h"
 
 // JUST FOR TESTING! remove later
 // #define PASS_PHRASE "123456789"
@@ -104,8 +109,9 @@ void calc_ptk_by_custom_PRF512(const unsigned char *pmk,
     hmac_arg[CONST_A_SALT_LEN + SALT_LEN + 1] = (unsigned char)i;
 
     /* calculate the HMAC, using sha1 */
-    HMAC(EVP_sha1(), pmk, PMK_LEN, hmac_arg, CONST_A_SALT_LEN + SALT_LEN + 2,
-         buffer + i * SHA_DIGEST_LENGTH, &len);
+    // HMAC(EVP_sha1(), pmk, PMK_LEN, hmac_arg, CONST_A_SALT_LEN + SALT_LEN + 2,
+    //      buffer + i * SHA_DIGEST_LENGTH, &len);
+    hmac_sha1(hmac_arg, CONST_A_SALT_LEN + SALT_LEN + 2, pmk, PMK_LEN, buffer + i * SHA_DIGEST_LENGTH);
   }
 
   /* copy final calculation to the ptk buffer given */
@@ -135,7 +141,8 @@ void calc_mic_from_ptk(const unsigned char *ptk,
   memcpy(hmac_arg + 81, EMPTY_MIC, MIC_LEN);
   memcpy(hmac_arg + 81 + MIC_LEN, second_handshake_packet + 97, eapol_len - 97);
 
-  HMAC(EVP_sha1(), ptk, MIC_LEN, hmac_arg, eapol_len, hmac_result, &mic_len);
+//   HMAC(EVP_sha1(), ptk, MIC_LEN, hmac_arg, eapol_len, hmac_result, &mic_len);
+  hmac_sha1(hmac_arg, eapol_len, ptk, MIC_LEN, hmac_result);
   memcpy(mic, hmac_result, MIC_LEN);
 }
 
@@ -167,8 +174,9 @@ void calc_mic_from_passphrase(char *ssid, char *client_mac, char *server_mac,
   unsigned char ptk[PTK_LEN];
   unsigned char dynamic_B_salt[SALT_LEN] = {0};
 
-  PKCS5_PBKDF2_HMAC_SHA1(passphrase, strlen(passphrase), (unsigned char *)ssid,
-                         strlen(ssid), HMAC_SHA1_ITER, PMK_LEN, pmk);
+//   PKCS5_PBKDF2_HMAC_SHA1(passphrase, strlen(passphrase), (unsigned char *)ssid,
+//                          strlen(ssid), HMAC_SHA1_ITER, PMK_LEN, pmk);
+  pbkdf2_sha1(passphrase, strlen(passphrase), ssid, strlen(ssid), HMAC_SHA1_ITER, PMK_LEN, pmk);
 
   calc_dynamic_B_salt(client_mac, server_mac, client_nonce, server_nonce,
                       dynamic_B_salt);

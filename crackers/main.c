@@ -98,16 +98,16 @@ int main(int argc, char *argv[]) {
       current_line++;
     }
   } else if (strcmp(argv[1], "sha1") == 0) {
-    assert(strlen(argv[2]) == SHA1_LENGTH * 2);
-    char result[SHA1_LENGTH];
+    assert(strlen(argv[2]) == SHA_DIGEST_LENGTH * 2);
+    char result[SHA_DIGEST_LENGTH];
     load_hex(argv[2], result);
 
     while (true) {
       int password_length = get_line(password);
 
-      char hash[SHA1_LENGTH];
+      char hash[SHA_DIGEST_LENGTH];
       sha1(password, password_length, hash);
-      if (memcmp(result, hash, SHA1_LENGTH) == 0) {
+      if (memcmp(result, hash, SHA_DIGEST_LENGTH) == 0) {
         printf("%s\n", password);
         break;
       }

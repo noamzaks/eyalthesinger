@@ -15,14 +15,14 @@ static void xor(char *dst, char* src, unsigned int length) {
 }
 
 void pbkdf2_sha1(const char* password, int password_length, const char* salt, int salt_length, uint32_t iterations, int dkLen, char* output) {
-    const uint32_t hLen = SHA1_LENGTH;
+    const uint32_t hLen = SHA_DIGEST_LENGTH;
     char U[MAX_SALT_LENGTH+4];
-    char T[SHA1_LENGTH];
+    char T[SHA_DIGEST_LENGTH];
     int U_length = 0;
 
     // assert (dkLen <= ((1 << 32) - 1) * hLen); /* derived key too long */
 
-    for (unsigned int i = 1; i <= (dkLen-1) / SHA1_LENGTH + 1 /* ceil(dkLen/SHA1_LENGTH) */; ++i) {
+    for (unsigned int i = 1; i <= (dkLen-1) / SHA_DIGEST_LENGTH + 1 /* ceil(dkLen/SHA_DIGEST_LENGTH) */; ++i) {
         memset(U, 0, sizeof(U));
         memset(T, 0, sizeof(T));
         /* U_0 */
@@ -35,14 +35,14 @@ void pbkdf2_sha1(const char* password, int password_length, const char* salt, in
 
         for (int j = 1; j <= iterations; ++j) {
             hmac_sha1(U, U_length, password, password_length, U);
-            U_length = SHA1_LENGTH;
-            xor(T, U, SHA1_LENGTH);
+            U_length = SHA_DIGEST_LENGTH;
+            xor(T, U, SHA_DIGEST_LENGTH);
         }
 
-        if (i < (dkLen-1) / SHA1_LENGTH + 1) {
-            memcpy(output + SHA1_LENGTH * (i-1), T, SHA1_LENGTH);
+        if (i < (dkLen-1) / SHA_DIGEST_LENGTH + 1) {
+            memcpy(output + SHA_DIGEST_LENGTH * (i-1), T, SHA_DIGEST_LENGTH);
         } else {
-            memcpy(output + SHA1_LENGTH * (i-1), T, (dkLen-1) % SHA1_LENGTH + 1);
+            memcpy(output + SHA_DIGEST_LENGTH * (i-1), T, (dkLen-1) % SHA_DIGEST_LENGTH + 1);
         }
     }
 }
