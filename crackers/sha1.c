@@ -234,12 +234,12 @@ void sha1_final(struct sha1_ctx* ctx, char* result) {
     ctx->buffer_size += 1;
 
     if (ctx->buffer_size > 64 - 8) {
-        memset(ctx->buffer + ctx->buffer_size, 0, 128 - ctx->buffer_size);
+        memset(ctx->buffer + ctx->buffer_size, 0, 64 - ctx->buffer_size);
         sha1_feed_block(ctx, ctx->buffer);
         ctx->buffer_size = 0;
     }
     /* Last block */
-    memset(ctx->buffer + ctx->buffer_size, 0, 128 - 8 - ctx->buffer_size);
+    memset(ctx->buffer + ctx->buffer_size, 0, 64 - 8 - ctx->buffer_size);
     ctx->buffer[64 - 8] = (uint8_t)((ctx->size >> 56) & 0xFF);
     ctx->buffer[64 - 7] = (uint8_t)((ctx->size >> 48) & 0xFF);
     ctx->buffer[64 - 6] = (uint8_t)((ctx->size >> 40) & 0xFF);
