@@ -3,8 +3,7 @@
 #include <string.h>
 
 #include "crackers/sha1.h"
-
-
+#include "crackers/hmac.h"
 
 
 int main(int argc, char** argv) {
@@ -27,6 +26,20 @@ int main(int argc, char** argv) {
         sha1_init(&ctx);
         sha1_update(&ctx, data, strlen(data));
         sha1_final(&ctx, result);
+        for (int i = 0; i < sizeof(result); ++i) {
+            sprintf(hexresult + 2*i, "%02x", result[i] & 0xFF);
+        }
+        printf("%s\n", hexresult);
+    } else if (strcmp(mode, "hmac_sha1") == 0) {
+        if (argc != 4) {
+            fprintf(stderr, "usage: %s hmac_sha1 <key> <message>\n", argv[0]);
+            return 1;
+        }
+        const char* key = argv[2];
+        const char* message = argv[3];
+        char result[20];
+        char hexresult[41] = { 0 };
+        hmac_sha1(message, strlen(message), key, strlen(key), result);
         for (int i = 0; i < sizeof(result); ++i) {
             sprintf(hexresult + 2*i, "%02x", result[i] & 0xFF);
         }
