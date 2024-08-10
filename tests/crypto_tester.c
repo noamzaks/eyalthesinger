@@ -4,7 +4,7 @@
 
 #include "crackers/sha1.h"
 #include "crackers/hmac.h"
-
+#include "crackers/pbkdf2.h"
 
 int main(int argc, char** argv) {
     if (argc < 2) {
@@ -41,6 +41,24 @@ int main(int argc, char** argv) {
         char hexresult[41] = { 0 };
         hmac_sha1(message, strlen(message), key, strlen(key), result);
         for (int i = 0; i < sizeof(result); ++i) {
+            sprintf(hexresult + 2*i, "%02x", result[i] & 0xFF);
+        }
+        printf("%s\n", hexresult);
+    } else if (strcmp(mode, "pbkdf2_sha1") == 0) {
+        if (argc != 6) {
+            fprintf(stderr, "usage: %s pbkdf2_sha1 <password> <salt> <iteration> <dkLen>\n", argv[0]);
+            return 1;
+        }
+        const char* password = argv[2];
+        const char* salt = argv[3];
+        int iteration = atoi(argv[4]);
+        int dkLen = atoi(argv[5]);
+        char result[1024] = { 0 };
+        char hexresult[sizeof(result)*2+1] = { 0 };
+
+        pbkdf2_sha1(password, strlen(password), salt, strlen(salt), iteration, dkLen, result);
+
+        for (int i = 0; i < dkLen; ++i) {
             sprintf(hexresult + 2*i, "%02x", result[i] & 0xFF);
         }
         printf("%s\n", hexresult);
