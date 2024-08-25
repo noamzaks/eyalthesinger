@@ -76,7 +76,10 @@ static inline int get_line(char *line) {
 }
 
 int main(int argc, char *argv[]) {
+
+#if defined(_POSIX_VERSION)
   signal(SIGINT, handle_sigint);
+#endif
 
   char password[MAX_LINE_LENGTH];
 

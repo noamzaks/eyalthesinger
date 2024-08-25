@@ -3,7 +3,6 @@
 #include "sha256.h"
 
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 
 #define ROTLEFT(a, b) (((a) << (b)) | ((a) >> (32 - (b))))
