@@ -12,7 +12,7 @@ int main() {
     FILE *file = fopen("rockyou.txt", "r");
     if (file == NULL) {
         printf("Error: Could not open password file.\n");
-        return;
+        return 1;
     }
 
     find_password(target_hash, file);
