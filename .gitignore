@@ -7,5 +7,5 @@ wheels/
 .venv
 .DS_Store
 *.out
-*.txt
 /sing
+/.vscode
