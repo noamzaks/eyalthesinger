@@ -14,10 +14,12 @@ def main() -> int:
     from eyalthesinger.crack import crack
     from eyalthesinger.download import download
     from eyalthesinger.format import format
+    from eyalthesinger.pad import pad
 
     cli.add_command(download)
     cli.add_command(crack)
     cli.add_command(format)
+    cli.add_command(pad)
     cli()
 
     return 0

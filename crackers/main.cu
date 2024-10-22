@@ -166,9 +166,10 @@ __device__ void sha256(const char *data, char result[SHA256_LENGTH]) {
 
 __global__ void sha256_cuda(char *wordlist_cuda, int wordlist_length,
                             char *result_cuda, char *password_cuda) {
-  char *thread_start = wordlist_cuda + (wordlist_length / 1024) * threadIdx.x;
+  int index = blockIdx.x * 1024 + threadIdx.x;
+  char *thread_start = wordlist_cuda + (wordlist_length / 1024 / 1024) * index;
   char *thread_end =
-      wordlist_cuda + (wordlist_length / 1024) * (threadIdx.x + 1);
+      wordlist_cuda + (wordlist_length / 1024 / 1024) * (index + 1);
   if (thread_end > wordlist_cuda + wordlist_length) {
     thread_end = wordlist_cuda + wordlist_length;
   }
@@ -249,8 +250,8 @@ int main(int argc, char *argv[]) {
   assert(cudaMalloc((void **)&password_cuda, MAX_LINE_LENGTH * sizeof(char)) ==
          cudaSuccess);
 
-  sha256_cuda<<<1, 1024>>>(wordlist_cuda, file_size, result_cuda,
-                           password_cuda);
+  sha256_cuda<<<1024, 1024>>>(wordlist_cuda, file_size, result_cuda,
+                              password_cuda);
 
   assert(cudaMemcpy(password, password_cuda, MAX_LINE_LENGTH,
                     cudaMemcpyDeviceToHost) == cudaSuccess);
