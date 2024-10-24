@@ -122,7 +122,3 @@ def connect(ip: str, port: int = 1574):
     
     # handle the connection
     handle_connection(client)
-
-
-if __name__ == "__main__":
-    connect("0.0.0.0", 2222)

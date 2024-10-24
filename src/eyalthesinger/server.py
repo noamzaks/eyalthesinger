@@ -185,7 +185,7 @@ def server(ip: str, port: int = 1574):
     """
     global stop
     global clients_list
-    
+
     client_reciever_thread = threading.Thread(target=client_reciever, args=(clients_list, ip, port))
     client_reciever_thread.start()
 
@@ -194,5 +194,3 @@ def server(ip: str, port: int = 1574):
     # if user chose to exit, no need to keep waiting for clients
     stop = True
     client_reciever_thread.join()
-
-   
