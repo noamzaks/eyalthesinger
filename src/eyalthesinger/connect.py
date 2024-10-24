@@ -6,7 +6,6 @@ Connects to the server in order to get jobs
 import click
 import socket
 import multiprocessing
-import json
 import sys
 import io
 
@@ -38,9 +37,9 @@ def crack_wordlist(server_instruction: dict):
         target_hash = server_instruction["target_hash"]
         wordlist = server_instruction["wordlist"]
         cipher = server_instruction["cipher"]
-    except:
+    except Exception:
         raise Exception(
-                f"error in crack_wordlist: missing argument"
+                "error in crack_wordlist: missing argument"
             )
     
     print("started working on cracking job!")
@@ -77,11 +76,11 @@ def handle_server_instruction(server_instruction: dict, client: socket.socket):
             response = {"instructionType": server_instruction["instructionType"], "data": instruction_ret}
         else:
             raise Exception(
-                f"server instruction missing"
+                "server instruction missing"
             )
-    except:
+    except Exception:
          raise Exception(
-                f"invalid server instruction"
+                "invalid server instruction"
             )
     
     socket_send_full_message(client, response)
@@ -116,7 +115,7 @@ def connect(ip: str, port: int = 1574):
     try:
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.connect((ip, port))
-    except:
+    except Exception:
         raise Exception(
                 f"cannot connect to server ({ip}, {port})"
             )

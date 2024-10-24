@@ -30,7 +30,7 @@ def ask_for_and_parse_cpu_info(client: socket.socket):
         return_message = socket_recieve_full_message(client)
         assert return_message["instructionType"] == "report_cpu_info"
         return return_message["data"]
-    except:
+    except Exception:
         return None
     
 
@@ -59,13 +59,13 @@ def client_reciever(clients_list, ip: str, port: int):
                 clients_list.append([client_sock, cpu_info])
             except socket.timeout:
                 continue
-            except:
+            except Exception:
                 raise Exception(
-                f"error in server socket"
+                "error in server socket"
             )
-    except:
+    except Exception:
         raise Exception(
-                f"error in server socket"
+                "error in server socket"
             )
 
 
@@ -76,7 +76,6 @@ async def wait_for_client_response(client_socket: socket.socket):
     response = socket_recieve_full_message(client_socket)
     if not response:
         print("client disconnected!" + PROMPT, end="")
-        clients_list = [client for client in clients_list if client[0] != client_socket]
     assert response["instructionType"] == "crack_wordlist"
     return response["data"]
 
@@ -185,9 +184,8 @@ def server(ip: str, port: int = 1574):
     Splits to two subprocesses: one will handle incoming client connections, and the other will handle user requests
     """
     global stop
-    clients_manager = Manager()
-    clients_list = clients_manager.list()
-
+    global clients_list
+    
     client_reciever_thread = threading.Thread(target=client_reciever, args=(clients_list, ip, port))
     client_reciever_thread.start()
 
@@ -196,9 +194,5 @@ def server(ip: str, port: int = 1574):
     # if user chose to exit, no need to keep waiting for clients
     stop = True
     client_reciever_thread.join()
-
-
-if __name__ == "__main__":
-    server("0.0.0.0", 2222)
 
    
