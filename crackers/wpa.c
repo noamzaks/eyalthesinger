@@ -124,6 +124,7 @@ void calc_mic_from_ptk(const char *ptk, const char *second_handshake_packet,
    * @param second_handshake_packet: the raw bytes of the second packet from the
    * four way handshake
    * @param mic: pointer to a buffer to output the mic in
+   * @param eapol_len: length of the second handshake packet
    *
    */
   char hmac_result[20]; // sha 1 length
