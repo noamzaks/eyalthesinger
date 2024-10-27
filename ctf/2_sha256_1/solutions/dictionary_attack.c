@@ -6,7 +6,6 @@
 #define BUFF_LEN 256
 
 char target_hash[SHA256_LENGTH] = {0x47, 0x2f, 0xd7, 0x5d, 0x4a, 0x10, 0xce, 0x85, 0x66, 0x36, 0x19, 0x1c, 0xa9, 0xce, 0x79, 0xea, 0x33, 0x1e, 0x90, 0x6b, 0xa2, 0x31, 0xa5, 0x4e, 0xef, 0x53, 0x9a, 0x10, 0x32, 0x61, 0x99, 0x13};
-int target = 4711203;
 
 int compare_hash (const char *target_hash, char *hash_to_check) {
     int i;
@@ -29,7 +28,7 @@ void find_password(const char *target_hash, FILE* file) {
     buffer = (char *)malloc(BUFF_LEN * sizeof(char));
 
     if (!buffer) {
-        printf("Error in malloc\n");
+        perror("Error in malloc\n");
         return;
     }
 
@@ -43,7 +42,7 @@ void find_password(const char *target_hash, FILE* file) {
         }
     }
 
-    printf("Couldn't find password\n");
+    perror("Couldn't find password\n");
     free(buffer);
 }
 
