@@ -13,8 +13,8 @@ import os
 
 NONCE_LENGTH = 32
 
-SSID = 'CyberNet2000'
-PASSPHRASE = 'perrytheplatypus'
+SSID = 'Who is she??'
+PASSPHRASE = '0525381648'
 
 STA_ADDR = os.urandom(6)
 BSS_ID = os.urandom(6)
