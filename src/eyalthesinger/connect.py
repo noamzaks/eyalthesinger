@@ -3,13 +3,14 @@ Networking client:
 Connects to the server in order to get jobs
 """
 
+import asyncio
 import click
 import socket
 import multiprocessing
 import sys
 import io
 
-from eyalthesinger.crack import crack
+from eyalthesinger.crack import crack, run_crack
 from eyalthesinger.utilities import (
     socket_recieve_full_message,
     socket_send_full_message,
@@ -47,7 +48,9 @@ def crack_wordlist(server_instruction: dict):
 
     buffer = io.StringIO()
     sys.stdout = buffer
-    crack(cipher, wordlist, target_hash, jobs=multiprocessing.cpu_count())
+    asyncio.get_event_loop().run_until_complete(
+        run_crack(cipher, wordlist, target_hash, jobs=multiprocessing.cpu_count())
+    )
     result = monitor_crack_output(buffer)
     sys.stdout = sys.__stdout__
     buffer.close()
@@ -114,9 +117,9 @@ def handle_connection(client: socket.socket):
 
 
 @click.command()
-@click.argument("ip")
-@click.argument("port", required=False)
-def connect(ip: str, port: int = 1574):
+@click.argument("ip", default="127.0.0.1")
+@click.argument("port", default=1574)
+def connect(ip: str, port: int):
     # try to connect to server
     try:
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
