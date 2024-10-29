@@ -167,9 +167,9 @@ int main() {
 
     // Change this to perform a dictionary attack, and find the password!!!!!
     const char *guessed_password = "password";  
+    send_password(server_socket, guessed_password); // Send the found password back to the server
 
-    // Send the found password back to the server
-    send_password(server_socket, guessed_password);
+
 
     // Receive the response (either the flag or a failure message)
     char response[BUFFER_SIZE];

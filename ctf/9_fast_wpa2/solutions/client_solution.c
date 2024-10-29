@@ -11,6 +11,8 @@ Need to compile with the -ljson-c flag
 #include <assert.h>
 #include <pthread.h>
 #include <stdatomic.h> 
+#include <stdbool.h>
+
 #include "wpa.h"
 
 #define SERVER_IP "127.0.0.1"
@@ -28,12 +30,12 @@ Need to compile with the -ljson-c flag
 
 
 typedef struct {
-    char ssid[32];
-    char client_mac[MAC_LENGTH];
-    char server_mac[MAC_LENGTH];
+    unsigned char ssid[32];
+    unsigned char client_mac[MAC_LENGTH];
+    unsigned char server_mac[MAC_LENGTH];
     unsigned char client_nonce[NONCE_LENGTH];
     unsigned char server_nonce[NONCE_LENGTH];
-    unsigned char mic[MIC_LENGTH;
+    unsigned char mic[MIC_LENGTH];
     char password[MAX_PASSWORD_LENGTH];
     unsigned char second_packet[SECOND_PACKET_LENGTH];
     int second_packet_length;
@@ -41,6 +43,7 @@ typedef struct {
     long end_offset;
     const char *password_file_path;
     atomic_bool *password_found;
+    int server_socket;
 } WPA_Info;
 
 
@@ -106,8 +109,8 @@ void parse_json_data(const char *json_str, char *ssid, char *client_mac, char *s
     strcpy(target_mic, json_object_get_string(j_target_mic));
 
     const char *second_packet_str = json_object_get_string(j_second_packet);
-    *second_packet_length = strlen(second_packet_str);
-    memcpy(second_packet, second_packet_str, *second_packet_length);
+    *second_packet_length = strlen(second_packet_str) / 2;
+    memcpy(second_packet, second_packet_str, (*second_packet_length)*2);
 
     json_object_put(parsed_json);  // Free memory
 }
@@ -153,8 +156,11 @@ void *dictionary_attack(void *arg) {
     char password[MAX_PASSWORD_LENGTH];
     char computed_mic[MIC_LENGTH];
 
+    printf("thread starting at %ld\n", data->start_offset);
+
+
     // Each thread opens its own file descriptor
-    FILE *password_file = fopen(PASSWORD_FILE, "r");
+    FILE *password_file = fopen(data->password_file_path, "r");
     if (password_file == NULL) {
         fprintf(stderr, "Error: Could not open password file in thread.\n");
         return NULL;
@@ -163,17 +169,23 @@ void *dictionary_attack(void *arg) {
     // Move the file pointer to the start offset
     fseek(password_file, data->start_offset, SEEK_SET);
 
+    int counter = 0;
+
     // Read each password in this thread's segment of the file
     while (ftell(password_file) < data->end_offset && fscanf(password_file, "%s", password) == 1) {
+        
+        password[strcspn(password, "\r\n")] = '\0';
         // Calculate the MIC for the current password
-        mic(password, strlen(password), data.ssid, data.client_mac, data.server_mac, data.client_nonce, 
-        data.server_nonce, data.second_packet, data.second_packet_length, computed_mic);
+        mic(password, strlen(password), data->ssid, data->client_mac, data->server_mac, data->client_nonce, 
+        data->server_nonce, data->second_packet, data->second_packet_length, computed_mic);
 
         // Compare the calculated MIC with the target MIC
-        if (memcmp(computed_mic, data->target_mic, 16) == 0) {
+        if (memcmp(computed_mic, data->mic, 16) == 0) {
             atomic_store(data->password_found, true);
             printf("Password found: %s\n", password);
             fclose(password_file);
+
+            send_password(data->server_socket, password);
             return NULL;
         }
 
@@ -181,6 +193,11 @@ void *dictionary_attack(void *arg) {
         if (atomic_load(data->password_found)) {
             fclose(password_file);
             return NULL;
+        }
+
+        counter++;
+        if (data->start_offset == 0 && counter % 1000 == 0){
+            printf("thread 0 completed %d\n", counter);
         }
     }
 
@@ -198,21 +215,21 @@ long get_file_size(FILE *file) {
 
 
 
-char* multithread_dictionary_attack(const char *ssid,
-         const char client_mac[MAC_LENGTH], const char server_mac[MAC_LENGTH],
-         const char client_nonce[NONCE_LENGTH],
-         const char server_nonce[NONCE_LENGTH], const char *second_packet,
-         int second_packet_length, target_mic[MIC_LENGTH], char result[MAX_PASSWORD_LENGTH]){
+char* multithread_dictionary_attack(const unsigned char *ssid,
+         const unsigned char client_mac[MAC_LENGTH], const unsigned char server_mac[MAC_LENGTH],
+         const unsigned char client_nonce[NONCE_LENGTH],
+         const unsigned char server_nonce[NONCE_LENGTH], const unsigned char *second_packet,
+         int second_packet_length, char unsigned target_mic[MIC_LENGTH], char result[MAX_PASSWORD_LENGTH], int server_socket){
     
     // Load WPA information
     WPA_Info thread_data[NUM_THREADS] = {0};
     atomic_bool password_found = false;
 
 
-    FILE *password_file = fopen(password_file_path, "r");
+    FILE *password_file = fopen(PASSWORD_FILE, "r");
     if (password_file == NULL) {
         printf("Error: Could not open password file.\n");
-        return 1;
+        return NULL;
     }
 
     long file_size = get_file_size(password_file);
@@ -221,20 +238,21 @@ char* multithread_dictionary_attack(const char *ssid,
 
 // Setup shared information in each thread's data
     for (int i = 0; i < NUM_THREADS; i++) {
-        thread_data[i].password_file_path = password_file_path;
+        thread_data[i].password_file_path = PASSWORD_FILE;
         strcpy(thread_data[i].ssid, ssid);
-        memset(thread_data[i].client_mac, client_mac, MAC_LENGTH);
-        memset(thread_data[i].server_mac, server_mac, MAC_LENGTH);
-        memset(thread_data[i].client_nonce, client_nonce, NONCE_LENGTH);
-        memset(thread_data[i].server_nonce, server_nonce, NONCE_LENGTH);
-        memset(thread_data[i].second_packet, second_packet, second_packet_length);
-        thread_data[i].second_packet_length = second_packet_length);
-        memset(thread_data[i].target_mic, target_mic, MIC_LENGTH);  // Replace with the actual target MIC
+        memcpy(thread_data[i].client_mac, client_mac, MAC_LENGTH);
+        memcpy(thread_data[i].server_mac, server_mac, MAC_LENGTH);
+        memcpy(thread_data[i].client_nonce, client_nonce, NONCE_LENGTH);
+        memcpy(thread_data[i].server_nonce, server_nonce, NONCE_LENGTH);
+        memcpy(thread_data[i].second_packet, second_packet, second_packet_length);
+        thread_data[i].second_packet_length = second_packet_length;
+        memcpy(thread_data[i].mic, target_mic, MIC_LENGTH);  
 
         // Assign each thread a segment of the file
         thread_data[i].start_offset = i * segment_size;
         thread_data[i].end_offset = (i == NUM_THREADS - 1) ? file_size : (i + 1) * segment_size;
         thread_data[i].password_found = &password_found;
+        thread_data[i].server_socket = server_socket;
     }
 
     // Create threads for dictionary attack
@@ -251,9 +269,9 @@ char* multithread_dictionary_attack(const char *ssid,
     // If password not found, inform the user
     if (!atomic_load(&password_found)) {
         printf("Password not found.\n");
+        return 0;
     }
 
-    return 0;
 
 
 }
@@ -306,10 +324,10 @@ int main() {
     // Perform a dictionary attack, and find the password!!!!!
     char password[MAX_PASSWORD_LENGTH] = {0}; 
     multithread_dictionary_attack(ssid, client_mac, server_mac, 
-    client_nonce, server_nonce, second_packet, second_packet_length, target_mic, password);  
+    client_nonce, server_nonce, second_packet, second_packet_length, target_mic, password, server_socket);  
 
-    // Send the found password back to the server
-    send_password(server_socket, password);
+    // Send the found password back to the server, this is done in the thread
+    // send_password(server_socket, password);
 
     // Receive the response (either the flag or a failure message)
     char response[BUFFER_SIZE];
