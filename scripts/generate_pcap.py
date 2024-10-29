@@ -11,7 +11,7 @@ import hmac
 
 import os
 
-NONCE_LENGTH = 16
+NONCE_LENGTH = 32
 
 SSID = 'CyberNet2000'
 PASSPHRASE = 'perrytheplatypus'
@@ -76,4 +76,4 @@ packets[3][Dot11].addr3 = BSS_ID
 packets[3][EAPOL_KEY].key_mic = mic(PASSPHRASE, SSID, STA_ADDR, BSS_ID, CLIENT_NONCE, SERVER_NONCE, bytes(packets[2][Dot11]))
 
 
-wrpcap("out.pcap", packets)
+wrpcap("dump.pcap", packets)
