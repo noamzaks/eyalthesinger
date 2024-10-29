@@ -11,8 +11,8 @@
 #define SSID ""
 #define AP_MAC ""
 #define CLIENT_MAC ""
-#define CLIENT_NONCE ""
-#define SERVER_NONCE ""
+#define client_nonce ""
+#define server_nonce ""
 #define DATA ""
 #define EMPTY_MIC ""
 #define SECOND_HANDSHAKE_PACKET ""
@@ -29,50 +29,88 @@
 #define HMAC_SHA1_ITER 4096
 
 /* constant salt used in the algorithm ('A') */
-#define CONST_A_SALT ""
-#define CONST_A_SALT_LEN -1
+#define CONST_A_SALT "Pairwise key expansion"
+#define CONST_A_SALT_LEN strlen("Pairwise key expansion")
 
 
+void calc_dynamic_B_salt(const char *client_mac, const char *server_mac,
+                         const char *client_nonce, const char *server_nonce,
+                         char *dynamic_B_salt) {
+  /**
+   * calculates the dynamic salt used in the algorithm ('B')
+   * the calculation performed is:
+   * B = min(server_mac, client_mac) || max(server_mac, client_mac) ||
+   * min(client_nonce, server_nonce) || max(client_nonce, server_nonce)
+   *
+   * @param client_mac: the client's mac address
+   * @param server_mac: the server's mac address
+   * @param client_nonce: client nonce
+   * @param server_nonce: server nonce
+   * @param dynamic_B_salt: pointer to a buffer to output the B salt in
+   *
+   */
 
-void calc_dynamic_B_salt(const char* client_mac, const char* server_mac, const char* client_nonce, const char* server_nonce, char* dynamic_B_salt){
-    /** 
-    * calculates the dynamic salt used in the algorithm ('B')
-    * 
-    * @param client_mac: the client's mac address
-    * @param server_mac: the server's mac address
-    * @param client_nonce: client nonce
-    * @param server_nonce: server nonce
-    * @param dynamic_B_salt: pointer to a buffer to output the B salt in
-    *
-    */ 
+  /* zero buffer before use */
+  memset(dynamic_B_salt, 0, SALT_LEN);
+
+  /* min(server_mac, client_mac) || max(server_mac, client_mac) */
+  if (memcmp(client_mac, server_mac, MAC_LEN) <= 0) {
+    memcpy(dynamic_B_salt, client_mac, MAC_LEN);
+    memcpy(dynamic_B_salt + MAC_LEN, server_mac, MAC_LEN);
+  } else {
+    memcpy(dynamic_B_salt, server_mac, MAC_LEN);
+    memcpy(dynamic_B_salt + MAC_LEN, client_mac, MAC_LEN);
+  }
+
+  /* min(client_nonce, server_nonce) || max(client_nonce, server_nonce) */
+
+  if (memcmp(client_nonce, server_nonce, NONCE_LEN) <= 0) {
+    memcpy(dynamic_B_salt + 2 * MAC_LEN, client_nonce, NONCE_LEN);
+    memcpy(dynamic_B_salt + 2 * MAC_LEN + NONCE_LEN, server_nonce, NONCE_LEN);
+  } else {
+    memcpy(dynamic_B_salt + 2 * MAC_LEN, server_nonce, NONCE_LEN);
+    memcpy(dynamic_B_salt + 2 * MAC_LEN + NONCE_LEN, client_nonce, NONCE_LEN);
+  }
 }
 
 
-void calc_ptk_by_custom_PRF512(const char *pmk, const char *dynamic_B_salt, char *ptk) {
-    /** 
-    * calculates the ptk from the pmk and the two salts. 
-    * 
-    * @param pmk: the pmk
-    * @param dynamic_B_salt: the dynamic salt, calculated by calc_dynamic_B_salt
-    * @param ptk: pointer to a buffer to output the ptk in
-    *
-    */ 
+void calc_ptk_by_custom_PRF512(const char *pmk, const char *dynamic_B_salt,
+                               char *ptk) {
+  /**
+   * calculates the ptk by using a custom PRF512 algorithm. The ptk is
+   * calculated from the pmk and the two salts.
+   *
+   * @param pmk: the pmk
+   * @param dynamic_B_salt: the dynamic salt, calculated by calc_dynamic_B_salt
+   * @param ptk: pointer to a buffer to output the ptk in
+   *
+   */
+
+  char buffer[4 * SHA_DIGEST_LENGTH] = {0};
+  unsigned int len;
+
+  /* we perform 4 iterations of HMAC */
+  for (int i = 0; i < 4; i++) {
+    char hmac_arg[256] = {0};
+
+    /* we perform the HMAC on: const_A_salt || bytes(0) || dynamic_B_salt ||
+     * bytes(i) */
+    memcpy(hmac_arg, CONST_A_SALT, CONST_A_SALT_LEN);
+    hmac_arg[CONST_A_SALT_LEN] = 0;
+    memcpy(hmac_arg + CONST_A_SALT_LEN + 1, dynamic_B_salt, SALT_LEN);
+    hmac_arg[CONST_A_SALT_LEN + SALT_LEN + 1] = i;
+
+    /* calculate the HMAC, using sha1 */
+    // HMAC(EVP_sha1(), pmk, PMK_LEN, hmac_arg, CONST_A_SALT_LEN + SALT_LEN + 2,
+    //      buffer + i * SHA_DIGEST_LENGTH, &len);
+    hmac_sha1((const char *)hmac_arg, CONST_A_SALT_LEN + SALT_LEN + 2,
+              (const char *)pmk, PMK_LEN,
+              (char *)(buffer + i * SHA_DIGEST_LENGTH));
+  }
+
+  /* copy final calculation to the ptk buffer given */
+  memcpy(ptk, buffer, PTK_LEN);
 }
-
-
-void calc_mic_from_ptk(const char *ptk, const char *second_handshake_packet, char *mic, int eapol_len) {
-    /** 
-    * calculates the mic, from the ptk and the second packet from the four-way handshake. 
-    * 
-    * @param ptk: the ptk
-    * @param second_handshake_packet: the raw bytes of the second packet from the four way handshake
-    * @param mic: pointer to a buffer to output the mic in
-    * @param eapol_len: length of the second handshake packet
-    *
-    */ 
-}
-
-
 
 void calc_mic_from_ptk(const char *ptk, const char *second_handshake_packet,
                        char *mic, int eapol_len) {
@@ -84,6 +122,7 @@ void calc_mic_from_ptk(const char *ptk, const char *second_handshake_packet,
    * @param second_handshake_packet: the raw bytes of the second packet from the
    * four way handshake
    * @param mic: pointer to a buffer to output the mic in
+   * @param eapol_len: length of the second handshake packet   
    *
    */
   char hmac_result[20]; // sha 1 length
@@ -140,8 +179,6 @@ void calc_mic_from_passphrase(const char *ssid, const char *client_mac,
 
     // Derive the mic from the ptk and raw, second handshake packet
     calc_mic_from_ptk(ptk, second_handshake_packet, mic, second_packet_length);
-
-    printf("The mic is: %s\n", mic);
 }
 
 
