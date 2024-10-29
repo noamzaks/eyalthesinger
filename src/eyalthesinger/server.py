@@ -183,9 +183,9 @@ def user_repl(clients_list):
 
 
 @click.command()
-@click.argument("ip")
-@click.argument("port", required=False)
-def server(ip: str, port: int = 1574):
+@click.argument("ip", default="0.0.0.0")
+@click.argument("port", default=1574)
+def server(ip: str, port: int):
     """
     Splits to two subprocesses: one will handle incoming client connections, and the other will handle user requests
     """
