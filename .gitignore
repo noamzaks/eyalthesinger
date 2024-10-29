@@ -9,3 +9,5 @@ wheels/
 *.out
 /sing
 /.vscode
+rockyou.txt
+wordlist*
