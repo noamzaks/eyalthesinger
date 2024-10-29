@@ -15,10 +15,8 @@ cffi==1.16.0
 click==8.1.7
     # via eyalthesinger
 colorama==0.4.6
-    # via click
     # via halo
     # via log-symbols
-    # via tqdm
 cryptography==42.0.8
     # via eyalthesinger
 halo==0.0.31

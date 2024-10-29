@@ -8,8 +8,11 @@ import socket
 import asyncio
 import threading
 
-from utilities import socket_recieve_full_message, socket_send_full_message
-from download import download
+from eyalthesinger.utilities import (
+    socket_recieve_full_message,
+    socket_send_full_message,
+)
+from eyalthesinger.download import download
 
 MAX_CLIENTS = 100
 PROMPT = "\n>>> "
@@ -32,7 +35,7 @@ def ask_for_and_parse_cpu_info(client: socket.socket):
         return return_message["data"]
     except Exception:
         return None
-    
+
 
 def client_reciever(clients_list, ip: str, port: int):
     """
@@ -60,13 +63,9 @@ def client_reciever(clients_list, ip: str, port: int):
             except socket.timeout:
                 continue
             except Exception:
-                raise Exception(
-                "error in server socket"
-            )
+                raise Exception("error in server socket")
     except Exception:
-        raise Exception(
-                "error in server socket"
-            )
+        raise Exception("error in server socket")
 
 
 async def wait_for_client_response(client_socket: socket.socket):
@@ -87,25 +86,27 @@ async def wait_for_responses_until_success(clients_list):
     """
     responses = [wait_for_client_response(client[0]) for client in clients_list]
     for future in asyncio.as_completed(responses):
-        success = await future 
+        success = await future
         if not success:
             continue
         else:
             return success
     return None
-        
 
 
 def split_and_crack(cipher: str, wordlist: str, hash: str, clients_list):
     """
     splits the wordlist between clients, according to their capabilities
     """
-    
+
     with open(wordlist, "rb") as f:
         lines = f.read().split(b"\n")
-    
+
     if len(clients_list) == 0:
-        print("No clients available yet! Try again after clients connected" + PROMPT, end="")
+        print(
+            "No clients available yet! Try again after clients connected" + PROMPT,
+            end="",
+        )
 
     sum_jobs = sum([item[1] for item in clients_list])
     print(f"sum jobs: {sum_jobs}")
@@ -114,12 +115,14 @@ def split_and_crack(cipher: str, wordlist: str, hash: str, clients_list):
     for index, client_info in enumerate(clients_list):
         print(client_info)
         wordlist_name = f"wordlist_for_client{index}.txt"
-        client_line_conuts = (len(lines) // sum_jobs) * client_info[1]  + 1
+        client_line_conuts = (len(lines) // sum_jobs) * client_info[1] + 1
         with open(wordlist_name, "wb") as f:
             f.write(
                 b"\n".join(
                     lines[
-                        current_index : min(current_index + client_line_conuts, len(lines))
+                        current_index : min(
+                            current_index + client_line_conuts, len(lines)
+                        )
                     ]
                 )
                 + b"\n"
@@ -129,18 +132,21 @@ def split_and_crack(cipher: str, wordlist: str, hash: str, clients_list):
             "instructionType": "crack_wordlist",
             "cipher": cipher,
             "target_hash": hash,
-            "wordlist": wordlist_name
+            "wordlist": wordlist_name,
         }
         socket_send_full_message(client_info[0], client_message)
 
-    print("finished splitting jobs between clients! waiting for responses" + PROMPT, end="")
+    print(
+        "finished splitting jobs between clients! waiting for responses" + PROMPT,
+        end="",
+    )
     success = asyncio.run(wait_for_responses_until_success(clients_list))
     if not success:
-        print("all clients failed!" + PROMPT, end = "")
+        print("all clients failed!" + PROMPT, end="")
     else:
         print(f"SUCCESS! password is {success}" + PROMPT, end="")
 
-    
+
 def user_repl(clients_list):
     """
     repl loop, waits for user instructions and handles them
@@ -156,7 +162,8 @@ def user_repl(clients_list):
             elif s[0] == "crack":
                 if len(s) != 4:
                     print(
-                        "Usage: crack [cipher] [wordlist] [target_hash]" + PROMPT, end=""
+                        "Usage: crack [cipher] [wordlist] [target_hash]" + PROMPT,
+                        end="",
                     )
                     continue
                 result = split_and_crack(s[1], s[2], s[3], clients_list)
@@ -165,18 +172,17 @@ def user_repl(clients_list):
             elif user_input == "help":
                 print(available_commands + PROMPT, end="")
             else:
-                print(
-                    "Invalid command!\n" + available_commands + PROMPT, end=""
-                )
+                print("Invalid command!\n" + available_commands + PROMPT, end="")
 
             if result is not None:
-                print(result + PROMPT, end = "")
+                print(result + PROMPT, end="")
 
         except KeyboardInterrupt:
             print()
             break
 
 
+@click.command()
 @click.argument("ip")
 @click.argument("port", required=False)
 def server(ip: str, port: int = 1574):
@@ -186,7 +192,9 @@ def server(ip: str, port: int = 1574):
     global stop
     global clients_list
 
-    client_reciever_thread = threading.Thread(target=client_reciever, args=(clients_list, ip, port))
+    client_reciever_thread = threading.Thread(
+        target=client_reciever, args=(clients_list, ip, port)
+    )
     client_reciever_thread.start()
 
     user_repl(clients_list)
