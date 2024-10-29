@@ -1,5 +1,5 @@
 import click
-from scapy.layers.dot11 import Dot11, Dot11Elt, Dot11ProbeResp
+from scapy.layers.dot11 import Dot11, Dot11Elt, Dot11Beacon
 from scapy.layers.eap import EAPOL, EAPOL_KEY
 from scapy.utils import rdpcap
 
@@ -23,9 +23,13 @@ def format(cipher: str, filename: str):
                 client_key_mic = p[EAPOL_KEY].key_mic
                 second_packet = bytes(p[EAPOL])
 
-        for p in capture[Dot11ProbeResp]:
+        # for p in capture[Dot11ProbeResp]:
+        #     if p[Dot11].addr2 == server_mac and p[Dot11Elt].ID == 0:  # SSID
+        #         ssid = p[Dot11Elt].info
+        #         break
+        for p in capture[Dot11Beacon]:
             if p[Dot11].addr2 == server_mac and p[Dot11Elt].ID == 0:  # SSID
-                ssid = p[Dot11Elt].info
+                ssid = p[Dot11Beacon].info
                 break
 
         hash = ":".join(
