@@ -1,13 +1,14 @@
 #include <pthread.h>
-
+#include <stdatomic.h> 
+#include <stdbool.h>
 
 typedef struct {
-    char ssid[32];
-    char client_mac[MAC_LENGTH];
-    char server_mac[MAC_LENGTH];
+    unsigned char ssid[32];
+    unsigned char client_mac[MAC_LENGTH];
+    unsigned char server_mac[MAC_LENGTH];
     unsigned char client_nonce[NONCE_LENGTH];
     unsigned char server_nonce[NONCE_LENGTH];
-    unsigned char mic[MIC_LENGTH;
+    unsigned char mic[MIC_LENGTH];
     char password[MAX_PASSWORD_LENGTH];
     unsigned char second_packet[SECOND_PACKET_LENGTH];
     int second_packet_length;
