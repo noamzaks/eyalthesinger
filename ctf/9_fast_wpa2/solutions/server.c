@@ -11,13 +11,16 @@
 #include "wpa.h"  
 
 
-#define PASSWORD_FILE "rockyou.txt"
+#define PASSWORD_FILE "shortened_rockyou.txt"
 #define MAX_PASSWORD_LENGTH 140
 #define MAX_MIC_COMPUTATIONS 100
 #define MAC_LENGTH 6
 #define NONCE_LENGTH 32
 #define MIC_LENGTH 16
 #define SECOND_PACKET_LENGTH 121
+
+#define PASSWORD_NUM 100000
+#define NUM_THREADS 8
 
 #define PORT 5510
 
@@ -128,10 +131,16 @@ void generate_random_data() {
 }
 
 
+double get_time_in_seconds() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec + ts.tv_nsec / 1e9;
+}
+
 
 // Estimate the time limit for client to respond
 void estimate_time_limit() {
-    clock_t start = clock();
+    clock_t start = get_time_in_seconds();
 
     char result[MIC_LENGTH + 1];
     char password[MAX_PASSWORD_LENGTH];
@@ -144,14 +153,14 @@ void estimate_time_limit() {
         wpa_info.second_packet_length, result);
 
     }
-    clock_t end = clock();
-    double elapsed = (double)(end - start) / CLOCKS_PER_SEC;
+    clock_t end = get_time_in_seconds();
+    double elapsed = end - start;
 
     // Estimate the total time for 14,000,000 MIC computations
-    double estimated_total_time = (elapsed / MAX_MIC_COMPUTATIONS) * 14000000;
+    double estimated_total_time = (elapsed / MAX_MIC_COMPUTATIONS) * PASSWORD_NUM;
 
     // Divide by 16 to get the time limit
-    time_limit_seconds = (unsigned int)(estimated_total_time / 16);
+    time_limit_seconds = (unsigned int)(estimated_total_time / NUM_THREADS);
     printf("Time limit set to: %u seconds\n", time_limit_seconds);
 }
 

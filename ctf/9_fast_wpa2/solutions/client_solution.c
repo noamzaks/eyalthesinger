@@ -19,7 +19,7 @@ Need to compile with the -ljson-c flag
 #define SERVER_PORT 5510
 
 #define BUFFER_SIZE 1024
-#define PASSWORD_FILE "rockyou.txt"
+#define PASSWORD_FILE "shortened_rockyou.txt"
 #define MAX_PASSWORD_LENGTH 140
 #define MAX_MIC_COMPUTATIONS 1000
 #define MAC_LENGTH 6
@@ -156,8 +156,6 @@ void *dictionary_attack(void *arg) {
     char password[MAX_PASSWORD_LENGTH];
     char computed_mic[MIC_LENGTH];
 
-    printf("thread starting at %ld\n", data->start_offset);
-
 
     // Each thread opens its own file descriptor
     FILE *password_file = fopen(data->password_file_path, "r");
@@ -195,10 +193,6 @@ void *dictionary_attack(void *arg) {
             return NULL;
         }
 
-        counter++;
-        if (data->start_offset == 0 && counter % 1000 == 0){
-            printf("thread 0 completed %d\n", counter);
-        }
     }
 
     fclose(password_file);
