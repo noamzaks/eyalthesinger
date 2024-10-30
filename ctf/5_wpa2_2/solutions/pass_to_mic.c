@@ -7,16 +7,14 @@
 #include "sha1.h"
 
 // These are the fields you need to extract from the packet. We KNOW that the passphrase is 123456789!
-#define PASS_PHRASE "123456789"
-#define SSID ""
-#define AP_MAC ""
-#define CLIENT_MAC ""
-#define client_nonce ""
-#define server_nonce ""
-#define DATA ""
-#define EMPTY_MIC ""
-#define SECOND_HANDSHAKE_PACKET ""
-#define SECOND_HANDSHAKE_PACKET_LENGTH -1
+#define PASS_PHRASE "LetsCalculateTheMIC"
+#define SSID "My house"
+#define AP_MAC "o\345\303\352&x"
+#define CLIENT_MAC "\177\327t\273\255V"
+#define CLIENT_NONCE "\205\006\203\244\263d\304\273C\321\224kpcW\037\034~=\260\221\b\320\273'\216\351\372\247\212\345~"
+#define SERVER_NONCE "\232\277y1\262o\214\032\265\022#.$\354\237\270Q\360\200s\311\223\245K\367\322\254:\276\304\035Z"
+#define EMPTY_MIC "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+#define SECOND_HANDSHAKE_PACKET "\001\003\000u\002\001\n\000\000\000\000\000\000\000\000\000\001\205\006\203\244\263d\304\273C\321\224kpcW\037\034~=\260\221\b\320\273'\216\351\372\247\212\345~\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000)\270\204[\335f\2450D\"9E\262\000g!\000\0260\024\001\000\000\017\254\004\001\000\000\017\254\004\001\000\000\017\254\002\200\000"
 
 // length constants
 #define EAPOL_LEN 121
@@ -183,11 +181,23 @@ void calc_mic_from_passphrase(const char *ssid, const char *client_mac,
 
 
 int main() {
-    char *mic = malloc(MIC_LEN);
-    if (!mic) {
-        perror("Error in malloc\n");
-        return -1;
-    }
-    calc_mic_from_passphrase(SSID, CLIENT_MAC, AP_MAC, CLIENT_NONCE, SERVER_NONCE, SECOND_HANDSHAKE_PACKET, SECOND_HANDSHAKE_PACKET_LENGTH, PASS_PHRASE, mic);
-    free(mic);
+  int i;
+  char *iterate_mic, *mic = malloc(MIC_LEN);
+
+  if (!mic) {
+      perror("Error in malloc\n");
+      return -1;
+  }
+
+  calc_mic_from_passphrase(SSID, CLIENT_MAC, AP_MAC, CLIENT_NONCE, SERVER_NONCE, EAPOL_LEN, SECOND_HANDSHAKE_PACKET, PASS_PHRASE, mic);
+
+  iterate_mic = mic;
+
+  for (int i = 0; i < MIC_LEN; i++) {
+      // Print each character as a two-digit hexadecimal value
+      printf("%02x", (unsigned char)*iterate_mic);
+      iterate_mic++;
+  }
+  printf("\n");
+  free(mic);
 }

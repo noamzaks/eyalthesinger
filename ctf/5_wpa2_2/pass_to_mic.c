@@ -7,16 +7,14 @@
 #include "sha1.h"
 
 // These are the fields you need to extract from the packet. We KNOW that the passphrase is 123456789!
-#define PASS_PHRASE "123456789"
+#define PASS_PHRASE "LetsCalculateTheMIC"
 #define SSID ""
 #define AP_MAC ""
 #define CLIENT_MAC ""
 #define CLIENT_NONCE ""
 #define SERVER_NONCE ""
-#define DATA ""
 #define EMPTY_MIC ""
 #define SECOND_HANDSHAKE_PACKET ""
-#define SECOND_HANDSHAKE_PACKET_LENGTH -1
 
 // length constants
 #define EAPOL_LEN 121
@@ -151,6 +149,6 @@ int main() {
         perror("Error in malloc\n");
         return -1;
     }
-    calc_mic_from_passphrase(SSID, CLIENT_MAC, AP_MAC, CLIENT_NONCE, SERVER_NONCE, SECOND_HANDSHAKE_PACKET, SECOND_HANDSHAKE_PACKET_LENGTH, PASS_PHRASE, mic);
+    calc_mic_from_passphrase(SSID, CLIENT_MAC, AP_MAC, CLIENT_NONCE, SERVER_NONCE, SECOND_HANDSHAKE_PACKET, EAPOL_LEN, PASS_PHRASE, mic);
     free(mic);
 }
