@@ -84,18 +84,6 @@ void calc_mic_from_ptk(const char *ptk, const char *second_handshake_packet,
    * @param mic: pointer to a buffer to output the mic in
    *
    */
-  char hmac_result[20]; // sha 1 length
-  char hmac_arg[256] = {0};
-  int mic_len;
-
-  /* we perform the hmac on: second_packet[:81] || 0 * MIC_LEN ||
-   * second_packet[97:] */
-  memcpy(hmac_arg, second_handshake_packet, 81);
-  memcpy(hmac_arg + 81, EMPTY_MIC, MIC_LEN);
-  memcpy(hmac_arg + 81 + MIC_LEN, second_handshake_packet + 97, eapol_len - 97);
-
-  hmac_sha1(hmac_arg, eapol_len, ptk, MIC_LEN, hmac_result);
-  memcpy(mic, hmac_result, MIC_LEN);
 }
 
 void calc_mic_from_passphrase(const char *ssid, const char *client_mac,
