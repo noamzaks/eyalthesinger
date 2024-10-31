@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from scapy.all import *
+from scapy.all import rdpcap, wrpcap
 from scapy.layers.eap import EAPOL, EAPOL_KEY
 from scapy.layers.dot11 import Dot11, Dot11Beacon, Dot11Elt
 
@@ -13,8 +13,8 @@ import os
 
 NONCE_LENGTH = 32
 
-SSID = 'Who is she??'
-PASSPHRASE = '0525381648'
+SSID = 'MyHouse'
+PASSPHRASE = 'LetsCalculateTheMIC'
 
 STA_ADDR = os.urandom(6)
 BSS_ID = os.urandom(6)

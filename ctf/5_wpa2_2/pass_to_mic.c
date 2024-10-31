@@ -7,16 +7,14 @@
 #include "sha1.h"
 
 // These are the fields you need to extract from the packet. We KNOW that the passphrase is 123456789!
-#define PASS_PHRASE "123456789"
+#define PASS_PHRASE "LetsCalculateTheMIC"
 #define SSID ""
 #define AP_MAC ""
 #define CLIENT_MAC ""
 #define CLIENT_NONCE ""
 #define SERVER_NONCE ""
-#define DATA ""
 #define EMPTY_MIC ""
 #define SECOND_HANDSHAKE_PACKET ""
-#define SECOND_HANDSHAKE_PACKET_LENGTH -1
 
 // length constants
 #define EAPOL_LEN 121
@@ -86,18 +84,6 @@ void calc_mic_from_ptk(const char *ptk, const char *second_handshake_packet,
    * @param mic: pointer to a buffer to output the mic in
    *
    */
-  char hmac_result[20]; // sha 1 length
-  char hmac_arg[256] = {0};
-  int mic_len;
-
-  /* we perform the hmac on: second_packet[:81] || 0 * MIC_LEN ||
-   * second_packet[97:] */
-  memcpy(hmac_arg, second_handshake_packet, 81);
-  memcpy(hmac_arg + 81, EMPTY_MIC, MIC_LEN);
-  memcpy(hmac_arg + 81 + MIC_LEN, second_handshake_packet + 97, eapol_len - 97);
-
-  hmac_sha1(hmac_arg, eapol_len, ptk, MIC_LEN, hmac_result);
-  memcpy(mic, hmac_result, MIC_LEN);
 }
 
 void calc_mic_from_passphrase(const char *ssid, const char *client_mac,
@@ -151,6 +137,6 @@ int main() {
         perror("Error in malloc\n");
         return -1;
     }
-    calc_mic_from_passphrase(SSID, CLIENT_MAC, AP_MAC, CLIENT_NONCE, SERVER_NONCE, SECOND_HANDSHAKE_PACKET, SECOND_HANDSHAKE_PACKET_LENGTH, PASS_PHRASE, mic);
+    calc_mic_from_passphrase(SSID, CLIENT_MAC, AP_MAC, CLIENT_NONCE, SERVER_NONCE, SECOND_HANDSHAKE_PACKET, EAPOL_LEN, PASS_PHRASE, mic);
     free(mic);
 }

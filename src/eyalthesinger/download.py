@@ -12,6 +12,7 @@ KNOWN_WORDLISTS = {
 @click.command()
 @click.argument("wordlist")
 def download(wordlist: str):
+    """ downloads wordlist and saves it"""
     url = wordlist
     if not wordlist.startswith("https://") and not wordlist.startswith("http://"):
         wordlist = wordlist.lower()

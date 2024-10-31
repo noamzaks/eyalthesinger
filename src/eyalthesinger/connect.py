@@ -10,7 +10,7 @@ import multiprocessing
 import sys
 import io
 
-from eyalthesinger.crack import crack, run_crack
+from eyalthesinger.crack import run_crack
 from eyalthesinger.utilities import (
     socket_recieve_full_message,
     socket_send_full_message,
