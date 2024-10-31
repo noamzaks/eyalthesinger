@@ -66,7 +66,7 @@ packets[2][Dot11].addr3 = BSS_ID
 packets[2][EAPOL_KEY].key_mic = mic(PASSPHRASE, SSID, STA_ADDR, BSS_ID, CLIENT_NONCE, SERVER_NONCE, bytes(packets[2][EAPOL]))
 
 # Third packet
-packets[3][EAPOL_KEY].key_nonce = CLIENT_NONCE
+packets[3][EAPOL_KEY].key_nonce = SERVER_NONCE
 packets[3][Dot11].addr1 = STA_ADDR
 packets[3][Dot11].addr2 = BSS_ID
 packets[3][Dot11].addr3 = BSS_ID
