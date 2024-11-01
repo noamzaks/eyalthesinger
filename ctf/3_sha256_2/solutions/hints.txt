@@ -1,0 +1,11 @@
+Hint:
+    Try this method of iterating over possible words:
+        for (int length = 1; length <= MAX_PASS_LEN && !(*data->found); length++) {
+            unsigned long combinations = pow(CHARSET_SIZE, length);
+            for (unsigned long i = data->start_index; i < combinations && !(*data->found); i += data->step_size) {
+                int j;
+                // Build the string for the current combination
+                for (j = 0; j < length; j++) {
+                    buffer[j] = CHARSET[(i / (unsigned long)pow(CHARSET_SIZE, j)) % CHARSET_SIZE];
+                }
+                buffer[length] = '\0';

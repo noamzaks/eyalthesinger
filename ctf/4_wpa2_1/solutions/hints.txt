@@ -1,0 +1,2 @@
+Hint:
+    What you're looking for is in the second handshake packet- that is the packet marked EAPOL Key, Message 2 of 4.

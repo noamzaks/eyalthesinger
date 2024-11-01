@@ -1,0 +1,11 @@
+Hints:
+    1. 
+        void calc_kck_by_custom_PRF512(const char *pmk, const char *dynamic_B_salt,
+                               char *kck):
+        We perform 4 iterations of HMAC, each time on const_A_salt || bytes(0) || dynamic_B_salt || bytes(i)
+        Finally, we perform:
+        HMAC(EVP_sha1(), pmk, PMK_LEN, hmac_arg, CONST_A_SALT_LEN + SALT_LENGTH + 2, buffer + i * SHA_DIGEST_LENGTH, &len);
+    
+    2. void calc_mic_from_kck(const char *kck, const char *second_handshake_eapol,
+                       char *mic, int eapol_len):
+        we perform the hmac on: second_packet[:81] || 0 * MIC_LENGTH || second_packet[97:]
