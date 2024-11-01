@@ -40,42 +40,44 @@ def mic(password: bytes, ssid: bytes, client_mac: bytes, server_mac: bytes, clie
     ptk = calc_ptk(pmk, dynamic_B_salt)
     return calc_mic(ptk[:16], second_packet)
 
-CLIENT_NONCE = os.urandom(NONCE_LENGTH)
-SERVER_NONCE = os.urandom(NONCE_LENGTH)
+if __name__ == '__main__':
 
-packets = rdpcap('data/capture.pcap')
+    CLIENT_NONCE = os.urandom(NONCE_LENGTH)
+    SERVER_NONCE = os.urandom(NONCE_LENGTH)
 
-# Beacon packet
-packets[0][Dot11Beacon][Dot11Elt].len = len(SSID)
-packets[0][Dot11Beacon][Dot11Elt].info = SSID
-packets[0][Dot11].addr2 = BSS_ID
-packets[0][Dot11].addr3 = BSS_ID
+    packets = rdpcap('data/capture.pcap')
+
+    # Beacon packet
+    packets[0][Dot11Beacon][Dot11Elt].len = len(SSID)
+    packets[0][Dot11Beacon][Dot11Elt].info = SSID
+    packets[0][Dot11].addr2 = BSS_ID
+    packets[0][Dot11].addr3 = BSS_ID
 
 
-# First packet
-packets[1][Dot11].addr1 = STA_ADDR # Destiniation Addess
-packets[1][Dot11].addr2 = BSS_ID
-packets[1][Dot11].addr3 = BSS_ID   # Source Address
-packets[1][EAPOL_KEY].key_nonce = SERVER_NONCE
+    # First packet
+    packets[1][Dot11].addr1 = STA_ADDR # Destiniation Addess
+    packets[1][Dot11].addr2 = BSS_ID
+    packets[1][Dot11].addr3 = BSS_ID   # Source Address
+    packets[1][EAPOL_KEY].key_nonce = SERVER_NONCE
 
-# Second packet
-packets[2][EAPOL_KEY].key_nonce = CLIENT_NONCE
-packets[2][Dot11].addr1 = BSS_ID
-packets[2][Dot11].addr2 = STA_ADDR
-packets[2][Dot11].addr3 = BSS_ID
-packets[2][EAPOL_KEY].key_mic = mic(PASSPHRASE, SSID, STA_ADDR, BSS_ID, CLIENT_NONCE, SERVER_NONCE, bytes(packets[2][EAPOL]))
+    # Second packet
+    packets[2][EAPOL_KEY].key_nonce = CLIENT_NONCE
+    packets[2][Dot11].addr1 = BSS_ID
+    packets[2][Dot11].addr2 = STA_ADDR
+    packets[2][Dot11].addr3 = BSS_ID
+    packets[2][EAPOL_KEY].key_mic = mic(PASSPHRASE, SSID, STA_ADDR, BSS_ID, CLIENT_NONCE, SERVER_NONCE, bytes(packets[2][EAPOL]))
 
-# Third packet
-packets[3][EAPOL_KEY].key_nonce = SERVER_NONCE
-packets[3][Dot11].addr1 = STA_ADDR
-packets[3][Dot11].addr2 = BSS_ID
-packets[3][Dot11].addr3 = BSS_ID
-packets[3][EAPOL_KEY].key_mic = mic(PASSPHRASE, SSID, STA_ADDR, BSS_ID, CLIENT_NONCE, SERVER_NONCE, bytes(packets[3][EAPOL]))
+    # Third packet
+    packets[3][EAPOL_KEY].key_nonce = SERVER_NONCE
+    packets[3][Dot11].addr1 = STA_ADDR
+    packets[3][Dot11].addr2 = BSS_ID
+    packets[3][Dot11].addr3 = BSS_ID
+    packets[3][EAPOL_KEY].key_mic = mic(PASSPHRASE, SSID, STA_ADDR, BSS_ID, CLIENT_NONCE, SERVER_NONCE, bytes(packets[3][EAPOL]))
 
-# Fourth packet
-packets[4][Dot11].addr1 = BSS_ID
-packets[4][Dot11].addr2 = STA_ADDR
-packets[4][Dot11].addr3 = BSS_ID
-packets[4][EAPOL_KEY].key_mic = mic(PASSPHRASE, SSID, STA_ADDR, BSS_ID, CLIENT_NONCE, SERVER_NONCE, bytes(packets[4][EAPOL]))
+    # Fourth packet
+    packets[4][Dot11].addr1 = BSS_ID
+    packets[4][Dot11].addr2 = STA_ADDR
+    packets[4][Dot11].addr3 = BSS_ID
+    packets[4][EAPOL_KEY].key_mic = mic(PASSPHRASE, SSID, STA_ADDR, BSS_ID, CLIENT_NONCE, SERVER_NONCE, bytes(packets[4][EAPOL]))
 
-wrpcap("dump.pcap", packets)
+    wrpcap("dump.pcap", packets)
