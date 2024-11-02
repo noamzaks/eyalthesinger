@@ -1,4 +1,10 @@
-# Eyal the Singer
+<h1 align="center">
+  Eyal The Singer
+  <br />
+  <img alt="build status" src="https://img.shields.io/github/actions/workflow/status/noamzaks/eyalthesinger/build.yml">
+  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg">
+  <img src="https://img.shields.io/badge/license-MIT-blue.svg">
+</h1>
 
 This is a password-cracking tool built for paralellization across CPU, GPU and possibly multiple devices connected on a network.
 
