@@ -1,0 +1,49 @@
+name: Build
+on: [push]
+jobs:
+    build:
+        permissions:
+            contents: write
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - platform: "macos-latest"
+                      args: "aarch64-apple-darwin"
+                      extension: ""
+                    - platform: "macos-latest"
+                      args: "x86_64-apple-darwin"
+                      extension: ""
+                    - platform: "ubuntu-latest"
+                      args: "x86_64"
+                      extension: ""
+                    - platform: "windows-latest"
+                      args: "x86_64"
+                      extension: ".exe"
+
+        runs-on: ${{ matrix.platform }}
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: install dependencies (ubuntu)
+              if: matrix.platform == 'ubuntu-latest'
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y clang
+
+            - name: compile (ubuntu)
+              if: matrix.platform == 'ubuntu-latest'
+              run: clang -O3 crackers/*.c -I. -o sing
+
+            - name: compile (mac)
+              if: matrix.platform == 'macos-latest'
+              run: clang -O3 crackers/*.c -I. -o sing -target ${{ matrix.args }}
+
+            - name: compile (windows)
+              if: matrix.platform == 'windows-latest'
+              run: gcc -O3 crackers/*.c -I. -o sing
+
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: sing-${{ matrix.platform }}-${{ matrix.args }}
+                  path: sing${{ matrix.extension }}
