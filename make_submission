@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+
+import os
+import shutil
+
+GROUP_NAME = "group-007"
+
+if os.path.exists(GROUP_NAME):
+    shutil.rmtree(GROUP_NAME)
+
+os.mkdir(GROUP_NAME)
+for dir in ["code", "guide", "report"]:
+    shutil.copytree(dir, os.path.join(GROUP_NAME, dir))
+
+os.system(f"tar -czvf {GROUP_NAME}.tar.gz {GROUP_NAME}")
+shutil.rmtree(GROUP_NAME)
