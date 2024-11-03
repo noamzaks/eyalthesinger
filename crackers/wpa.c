@@ -1,10 +1,12 @@
 #include "wpa.h"
-#include "hmac.h"
-#include "pbkdf2.h"
-#include "sha1.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "hmac.h"
+#include "pbkdf2.h"
+#include "sha1.h"
 
 void calc_dynamic_B_salt(const char *client_mac, const char *server_mac,
                          const char *client_nonce, const char *server_nonce,
@@ -39,10 +41,12 @@ void calc_dynamic_B_salt(const char *client_mac, const char *server_mac,
 
   if (memcmp(client_nonce, server_nonce, NONCE_LENGTH) <= 0) {
     memcpy(dynamic_B_salt + 2 * MAC_LENGTH, client_nonce, NONCE_LENGTH);
-    memcpy(dynamic_B_salt + 2 * MAC_LENGTH + NONCE_LENGTH, server_nonce, NONCE_LENGTH);
+    memcpy(dynamic_B_salt + 2 * MAC_LENGTH + NONCE_LENGTH, server_nonce,
+           NONCE_LENGTH);
   } else {
     memcpy(dynamic_B_salt + 2 * MAC_LENGTH, server_nonce, NONCE_LENGTH);
-    memcpy(dynamic_B_salt + 2 * MAC_LENGTH + NONCE_LENGTH, client_nonce, NONCE_LENGTH);
+    memcpy(dynamic_B_salt + 2 * MAC_LENGTH + NONCE_LENGTH, client_nonce,
+           NONCE_LENGTH);
   }
 }
 
@@ -62,7 +66,10 @@ void calc_kck_by_custom_PRF512(const char *pmk, const char *dynamic_B_salt,
   unsigned int len;
 
   /* we perform 4 iterations of HMAC */
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 4 /* we don't need the next 3 but performance improvement
+                           is negligible */
+       ;
+       i++) {
     char hmac_arg[256] = {0};
 
     /* we perform the HMAC on: const_A_salt || bytes(0) || dynamic_B_salt ||
@@ -73,8 +80,9 @@ void calc_kck_by_custom_PRF512(const char *pmk, const char *dynamic_B_salt,
     hmac_arg[CONST_A_SALT_LENGTH + SALT_LENGTH + 1] = i;
 
     /* calculate the HMAC, using sha1 */
-    // HMAC(EVP_sha1(), pmk, PMK_LEN, hmac_arg, CONST_A_SALT_LEN + SALT_LENGTH + 2,
-    //      buffer + i * SHA_DIGEST_LENGTH, &len);
+    // HMAC(EVP_sha1(), pmk, PMK_LENGTH, hmac_arg,
+    //      CONST_A_SALT_LENGTH + SALT_LENGTH + 2, buffer + i *
+    //      SHA_DIGEST_LENGTH, &len);
     hmac_sha1((const char *)hmac_arg, CONST_A_SALT_LENGTH + SALT_LENGTH + 2,
               (const char *)pmk, PMK_LENGTH,
               (char *)(buffer + i * SHA_DIGEST_LENGTH));
@@ -87,17 +95,17 @@ void calc_kck_by_custom_PRF512(const char *pmk, const char *dynamic_B_salt,
 void calc_mic_from_kck(const char *kck, const char *second_handshake_eapol,
                        char *mic, int eapol_len) {
   /**
-   * calculates the mic, from KCK and the second packet eapol layer from the four-way
-   * handshake.
+   * calculates the mic, from KCK and the second packet eapol layer from the
+   * four-way handshake.
    *
    * @param kck: the KCK
-   * @param second_handshake_eapol: the raw bytes of the eapol layer of the second packet from the
-   * four way handshake
+   * @param second_handshake_eapol: the raw bytes of the eapol layer of the
+   * second packet from the four way handshake
    * @param mic: pointer to a buffer to output the mic in
    * @param eapol_len: length of the second handshake packet
    *
    */
-  char hmac_result[20]; // sha 1 length
+  char hmac_result[20];  // sha 1 length
   char hmac_arg[256] = {0};
   int mic_len;
 
@@ -105,7 +113,8 @@ void calc_mic_from_kck(const char *kck, const char *second_handshake_eapol,
    * second_packet[97:] */
   memcpy(hmac_arg, second_handshake_eapol, 81);
   memcpy(hmac_arg + 81, EMPTY_MIC, MIC_LENGTH);
-  memcpy(hmac_arg + 81 + MIC_LENGTH, second_handshake_eapol + 97, eapol_len - 97);
+  memcpy(hmac_arg + 81 + MIC_LENGTH, second_handshake_eapol + 97,
+         eapol_len - 97);
 
   hmac_sha1(hmac_arg, eapol_len, kck, MIC_LENGTH, hmac_result);
   memcpy(mic, hmac_result, MIC_LENGTH);
@@ -128,8 +137,8 @@ void calc_mic_from_passphrase(const char *ssid, const char *client_mac,
    * @param server_nonce: server nonce
    * @param second_packet_length: the length (in bytes) of the second handshake
    * packet
-   * @param second_handshake_eapol: the raw bytes of the eapol layer of the second packet from the
-   * four way handshake
+   * @param second_handshake_eapol: the raw bytes of the eapol layer of the
+   * second packet from the four way handshake
    * @param passphrase: passphrase to calculate mic for
    * @param mic: pointer to a buffer to output the mic in
    *
@@ -147,7 +156,7 @@ void calc_mic_from_passphrase(const char *ssid, const char *client_mac,
   // Then, calculate the dynamic salt, B
   calc_dynamic_B_salt(client_mac, server_mac, client_nonce, server_nonce,
                       (char *)dynamic_B_salt);
-  
+
   // Derive KCK from the pmk and salt
   calc_kck_by_custom_PRF512(pmk, dynamic_B_salt, kck);
 
@@ -161,6 +170,6 @@ void mic(const char *password, int password_length, const char *ssid,
          const char server_nonce[NONCE_LENGTH], const char *second_packet_eapol,
          int second_packet_eapol_length, char result[MIC_LENGTH]) {
   calc_mic_from_passphrase(ssid, client_mac, server_mac, client_nonce,
-                           server_nonce, second_packet_eapol_length, second_packet_eapol,
-                           password, result);
+                           server_nonce, second_packet_eapol_length,
+                           second_packet_eapol, password, result);
 }

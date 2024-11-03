@@ -1,4 +1,4 @@
-// Based on: https://github.com/CTrabant/teeny-sha1/blob/main/teeny-sha1.c
+// Based on: https://github.com/fatestudio/sha1
 
 #include "sha1.h"
 
@@ -7,255 +7,204 @@
 
 #define ROTLEFT(a, b) (((a) << (b)) | ((a) >> (32 - (b))))
 
-void sha1(const char *data, int data_length, char result[SHA_DIGEST_LENGTH]) {
-  uint32_t W[80];
-  uint32_t H[] = {0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0};
-  uint32_t a;
-  uint32_t b;
-  uint32_t c;
-  uint32_t d;
-  uint32_t e;
-  uint32_t f = 0;
-  uint32_t k = 0;
+/* blk0() and blk() perform the initial expand. */
+/* I got the idea of expanding during the round function from SSLeay */
+#if BYTE_ORDER == LITTLE_ENDIAN
+#define blk0(i)                                            \
+  (block->l[i] = (ROTLEFT(block->l[i], 24) & 0xFF00FF00) | \
+                 (ROTLEFT(block->l[i], 8) & 0x00FF00FF))
+#elif BYTE_ORDER == BIG_ENDIAN
+#define blk0(i) block->l[i]
+#else
+#error "Endianness not defined!"
+#endif
+#define blk(i)                                                    \
+  (block->l[i & 15] =                                             \
+       ROTLEFT(block->l[(i + 13) & 15] ^ block->l[(i + 8) & 15] ^ \
+                   block->l[(i + 2) & 15] ^ block->l[i & 15],     \
+               1))
+/* (R0+R1), R2, R3, R4 are the different operations used in SHA1 */
+#define R0(v, w, x, y, z, i)                                       \
+  z += ((w & (x ^ y)) ^ y) + blk0(i) + 0x5A827999 + ROTLEFT(v, 5); \
+  w = ROTLEFT(w, 30);
+#define R1(v, w, x, y, z, i)                                      \
+  z += ((w & (x ^ y)) ^ y) + blk(i) + 0x5A827999 + ROTLEFT(v, 5); \
+  w = ROTLEFT(w, 30);
+#define R2(v, w, x, y, z, i)                              \
+  z += (w ^ x ^ y) + blk(i) + 0x6ED9EBA1 + ROTLEFT(v, 5); \
+  w = ROTLEFT(w, 30);
+#define R3(v, w, x, y, z, i)                                            \
+  z += (((w | x) & y) | (w & x)) + blk(i) + 0x8F1BBCDC + ROTLEFT(v, 5); \
+  w = ROTLEFT(w, 30);
+#define R4(v, w, x, y, z, i)                              \
+  z += (w ^ x ^ y) + blk(i) + 0xCA62C1D6 + ROTLEFT(v, 5); \
+  w = ROTLEFT(w, 30);
 
-  uint32_t idx;
-  uint32_t lidx;
-  uint32_t widx;
-  uint32_t didx = 0;
+void sha1(const char* data, int data_length, char result[SHA_DIGEST_LENGTH]) {
+  struct sha1_ctx context;
+  sha1_init(&context);
+  sha1_update(&context, data, data_length);
+  sha1_final(&context, result);
+}
 
-  int32_t wcount;
-  uint32_t temp;
-  uint64_t databits = ((uint64_t)data_length) * 8;
-  uint32_t loopcount = (data_length + 8) / 64 + 1;
-  uint32_t tailbytes = 64 * loopcount - data_length;
-  uint8_t datatail[128] = {0};
+void sha1_init(struct sha1_ctx* context) {
+  context->H[0] = 0x67452301;
+  context->H[1] = 0xEFCDAB89;
+  context->H[2] = 0x98BADCFE;
+  context->H[3] = 0x10325476;
+  context->H[4] = 0xC3D2E1F0;
+  context->count[0] = 0;
+  context->count[1] = 0;
+}
 
-  /* Pre-processing of data tail (includes padding to fill out 512-bit chunk):
-     Add bit '1' to end of message (big-endian)
-     Add 64-bit message length in bits at very end (big-endian) */
-  datatail[0] = 0x80;
-  datatail[tailbytes - 8] = (uint8_t)(databits >> 56 & 0xFF);
-  datatail[tailbytes - 7] = (uint8_t)(databits >> 48 & 0xFF);
-  datatail[tailbytes - 6] = (uint8_t)(databits >> 40 & 0xFF);
-  datatail[tailbytes - 5] = (uint8_t)(databits >> 32 & 0xFF);
-  datatail[tailbytes - 4] = (uint8_t)(databits >> 24 & 0xFF);
-  datatail[tailbytes - 3] = (uint8_t)(databits >> 16 & 0xFF);
-  datatail[tailbytes - 2] = (uint8_t)(databits >> 8 & 0xFF);
-  datatail[tailbytes - 1] = (uint8_t)(databits >> 0 & 0xFF);
+static void sha1_transform(uint32_t H[5], const unsigned char buffer[64]) {
+  u_int32_t a, b, c, d, e;
+  typedef union {
+    unsigned char c[64];
+    u_int32_t l[16];
+  } CHAR64LONG16;
+  CHAR64LONG16 block[1];
+  memcpy(block, buffer, 64);
 
-  /* Process each 512-bit chunk */
-  for (lidx = 0; lidx < loopcount; lidx++) {
-    /* Compute all elements in W */
-    memset(W, 0, 80 * sizeof(uint32_t));
+  a = H[0];
+  b = H[1];
+  c = H[2];
+  d = H[3];
+  e = H[4];
+  /* 4 rounds of 20 operations each. Loop unrolled. */
+  R0(a, b, c, d, e, 0);
+  R0(e, a, b, c, d, 1);
+  R0(d, e, a, b, c, 2);
+  R0(c, d, e, a, b, 3);
+  R0(b, c, d, e, a, 4);
+  R0(a, b, c, d, e, 5);
+  R0(e, a, b, c, d, 6);
+  R0(d, e, a, b, c, 7);
+  R0(c, d, e, a, b, 8);
+  R0(b, c, d, e, a, 9);
+  R0(a, b, c, d, e, 10);
+  R0(e, a, b, c, d, 11);
+  R0(d, e, a, b, c, 12);
+  R0(c, d, e, a, b, 13);
+  R0(b, c, d, e, a, 14);
+  R0(a, b, c, d, e, 15);
+  R1(e, a, b, c, d, 16);
+  R1(d, e, a, b, c, 17);
+  R1(c, d, e, a, b, 18);
+  R1(b, c, d, e, a, 19);
+  R2(a, b, c, d, e, 20);
+  R2(e, a, b, c, d, 21);
+  R2(d, e, a, b, c, 22);
+  R2(c, d, e, a, b, 23);
+  R2(b, c, d, e, a, 24);
+  R2(a, b, c, d, e, 25);
+  R2(e, a, b, c, d, 26);
+  R2(d, e, a, b, c, 27);
+  R2(c, d, e, a, b, 28);
+  R2(b, c, d, e, a, 29);
+  R2(a, b, c, d, e, 30);
+  R2(e, a, b, c, d, 31);
+  R2(d, e, a, b, c, 32);
+  R2(c, d, e, a, b, 33);
+  R2(b, c, d, e, a, 34);
+  R2(a, b, c, d, e, 35);
+  R2(e, a, b, c, d, 36);
+  R2(d, e, a, b, c, 37);
+  R2(c, d, e, a, b, 38);
+  R2(b, c, d, e, a, 39);
+  R3(a, b, c, d, e, 40);
+  R3(e, a, b, c, d, 41);
+  R3(d, e, a, b, c, 42);
+  R3(c, d, e, a, b, 43);
+  R3(b, c, d, e, a, 44);
+  R3(a, b, c, d, e, 45);
+  R3(e, a, b, c, d, 46);
+  R3(d, e, a, b, c, 47);
+  R3(c, d, e, a, b, 48);
+  R3(b, c, d, e, a, 49);
+  R3(a, b, c, d, e, 50);
+  R3(e, a, b, c, d, 51);
+  R3(d, e, a, b, c, 52);
+  R3(c, d, e, a, b, 53);
+  R3(b, c, d, e, a, 54);
+  R3(a, b, c, d, e, 55);
+  R3(e, a, b, c, d, 56);
+  R3(d, e, a, b, c, 57);
+  R3(c, d, e, a, b, 58);
+  R3(b, c, d, e, a, 59);
+  R4(a, b, c, d, e, 60);
+  R4(e, a, b, c, d, 61);
+  R4(d, e, a, b, c, 62);
+  R4(c, d, e, a, b, 63);
+  R4(b, c, d, e, a, 64);
+  R4(a, b, c, d, e, 65);
+  R4(e, a, b, c, d, 66);
+  R4(d, e, a, b, c, 67);
+  R4(c, d, e, a, b, 68);
+  R4(b, c, d, e, a, 69);
+  R4(a, b, c, d, e, 70);
+  R4(e, a, b, c, d, 71);
+  R4(d, e, a, b, c, 72);
+  R4(c, d, e, a, b, 73);
+  R4(b, c, d, e, a, 74);
+  R4(a, b, c, d, e, 75);
+  R4(e, a, b, c, d, 76);
+  R4(d, e, a, b, c, 77);
+  R4(c, d, e, a, b, 78);
+  R4(b, c, d, e, a, 79);
+  /* Add the working vars back into context.state[] */
+  H[0] += a;
+  H[1] += b;
+  H[2] += c;
+  H[3] += d;
+  H[4] += e;
+  /* Wipe variables */
+  a = b = c = d = e = 0;
+  memset(block, '\0', sizeof(block));
+}
 
-    /* Break 512-bit chunk into sixteen 32-bit, big endian words */
-    for (widx = 0; widx <= 15; widx++) {
-      wcount = 24;
+void sha1_update(struct sha1_ctx* context, const unsigned char* data,
+                 uint32_t data_length) {
+  u_int32_t i;
+  u_int32_t j;
 
-      /* Copy byte-per byte from specified buffer */
-      while (didx < data_length && wcount >= 0) {
-        W[widx] += (((uint32_t)data[didx]) << wcount);
-        didx++;
-        wcount -= 8;
-      }
-      /* Fill out W with padding as needed */
-      while (wcount >= 0) {
-        W[widx] += (((uint32_t)datatail[didx - data_length]) << wcount);
-        didx++;
-        wcount -= 8;
-      }
+  j = context->count[0];
+  if ((context->count[0] += data_length << 3) < j) context->count[1]++;
+  context->count[1] += (data_length >> 29);
+  j = (j >> 3) & 63;
+  if ((j + data_length) > 63) {
+    memcpy(&context->buffer[j], data, (i = 64 - j));
+    sha1_transform(context->H, context->buffer);
+    for (; i + 63 < data_length; i += 64) {
+      sha1_transform(context->H, &data[i]);
     }
+    j = 0;
+  } else
+    i = 0;
+  memcpy(&context->buffer[j], &data[i], data_length - i);
+}
 
-    /* Extend the sixteen 32-bit words into eighty 32-bit words, with potential
-       optimization from: "Improving the Performance of the Secure Hash
-       Algorithm (SHA-1)" by Max Locktyukhin */
-    for (widx = 16; widx <= 31; widx++) {
-      W[widx] =
-          ROTLEFT((W[widx - 3] ^ W[widx - 8] ^ W[widx - 14] ^ W[widx - 16]), 1);
-    }
-    for (widx = 32; widx <= 79; widx++) {
-      W[widx] = ROTLEFT(
-          (W[widx - 6] ^ W[widx - 16] ^ W[widx - 28] ^ W[widx - 32]), 2);
-    }
-
-    /* Main loop */
-    a = H[0];
-    b = H[1];
-    c = H[2];
-    d = H[3];
-    e = H[4];
-
-    for (idx = 0; idx <= 79; idx++) {
-      if (idx <= 19) {
-        f = (b & c) | ((~b) & d);
-        k = 0x5A827999;
-      } else if (idx >= 20 && idx <= 39) {
-        f = b ^ c ^ d;
-        k = 0x6ED9EBA1;
-      } else if (idx >= 40 && idx <= 59) {
-        f = (b & c) | (b & d) | (c & d);
-        k = 0x8F1BBCDC;
-      } else if (idx >= 60 && idx <= 79) {
-        f = b ^ c ^ d;
-        k = 0xCA62C1D6;
-      }
-      temp = ROTLEFT(a, 5) + f + e + k + W[idx];
-      e = d;
-      d = c;
-      c = ROTLEFT(b, 30);
-      b = a;
-      a = temp;
-    }
-
-    H[0] += a;
-    H[1] += b;
-    H[2] += c;
-    H[3] += d;
-    H[4] += e;
+void sha1_final(struct sha1_ctx* context, unsigned char* result) {
+  unsigned int i;
+  unsigned char final_count[8];
+  unsigned char c;
+  for (i = 0; i < 8; i++) {
+    final_count[i] = (unsigned char)((context->count[(i >= 4 ? 0 : 1)] >>
+                                      ((3 - (i & 3)) * 8)) &
+                                     255); /* Endian independent */
   }
-
-  /* Store binary digest in supplied buffer */
-  for (int i = 0; i < 5; i++) {
-    result[i * 4 + 0] = (uint8_t)(H[i] >> 24);
-    result[i * 4 + 1] = (uint8_t)(H[i] >> 16);
-    result[i * 4 + 2] = (uint8_t)(H[i] >> 8);
-    result[i * 4 + 3] = (uint8_t)(H[i]);
+  c = 0200;
+  sha1_update(context, &c, 1);
+  while ((context->count[0] & 504) != 448) {
+    c = 0000;
+    sha1_update(context, &c, 1);
   }
-}
-
-void sha1_init(struct sha1_ctx* ctx) {
-    *ctx = (struct sha1_ctx){
-        {0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0},
-        0,
-        { 0 },
-        0,
-    };
-}
-
-static void sha1_feed_block(struct sha1_ctx* ctx, const char* block) {
-    uint32_t W[80] = { 0 };
-    uint32_t idx;
-    uint32_t widx = 0;
-    uint32_t didx = 0;
-    int32_t wcount;
-    uint32_t temp;
-    uint32_t a;
-    uint32_t b;
-    uint32_t c;
-    uint32_t d;
-    uint32_t e;
-    uint32_t f = 0;
-    uint32_t k = 0;
-
-    /* Break 512-bit chunk into sixteen 32-bit, big endian words */
-    for (widx = 0; widx <= 15; widx++) {
-        /* Copy byte-per byte from specified buffer */
-        for (wcount = 24; wcount >= 0; wcount -= 8) {
-            W[widx] += (((uint32_t)(block[didx] & 0xFF)) << wcount);
-            didx++;
-        }
-    }
-    /* Extend the sixteen 32-bit words into eighty 32-bit words, with potential
-       optimization from: "Improving the Performance of the Secure Hash
-       Algorithm (SHA-1)" by Max Locktyukhin */
-    for (widx = 16; widx <= 31; widx++) {
-        W[widx] = ROTLEFT((W[widx - 3] ^ W[widx - 8] ^ W[widx - 14] ^ W[widx - 16]), 1);
-    }
-    for (widx = 32; widx <= 79; widx++) {
-        W[widx] = ROTLEFT((W[widx - 6] ^ W[widx - 16] ^ W[widx - 28] ^ W[widx - 32]), 2);
-    }
-
-    /* Main loop */
-    a = ctx->H[0];
-    b = ctx->H[1];
-    c = ctx->H[2];
-    d = ctx->H[3];
-    e = ctx->H[4];
-
-    for (idx = 0; idx < 80; idx++) {
-        if (idx <= 19) {
-            f = (b & c) | ((~b) & d);
-            k = 0x5A827999;
-        } else if (idx >= 20 && idx <= 39) {
-            f = b ^ c ^ d;
-            k = 0x6ED9EBA1;
-        } else if (idx >= 40 && idx <= 59) {
-            f = (b & c) | (b & d) | (c & d);
-            k = 0x8F1BBCDC;
-        } else if (idx >= 60 && idx <= 79) {
-            f = b ^ c ^ d;
-            k = 0xCA62C1D6;
-        }
-        temp = ROTLEFT(a, 5) + f + e + k + W[idx];
-        e = d;
-        d = c;
-        c = ROTLEFT(b, 30);
-        b = a;
-        a = temp;
-    }
-
-    ctx->H[0] += a;
-    ctx->H[1] += b;
-    ctx->H[2] += c;
-    ctx->H[3] += d;
-    ctx->H[4] += e;
-}
-
-void sha1_update(struct sha1_ctx* ctx, const char* data, uint32_t data_length) {
-    ctx->size += data_length * 8; /* size in bits */
-    /* Not enogth data */
-    if (ctx->buffer_size + data_length < 64) {
-        memcpy(ctx->buffer + ctx->buffer_size, data, data_length);
-        ctx->buffer_size += data_length;
-        return;
-    }
-    /* ctx->buffer is not empty */
-    if (ctx->buffer_size > 0) {
-        memcpy(ctx->buffer + ctx->buffer_size, data, 64 - ctx->buffer_size);
-        sha1_feed_block(ctx, ctx->buffer);
-        data += ctx->buffer_size;
-        data_length -= ctx->buffer_size;
-        ctx->buffer_size = 0;
-    }
-    /* Feed middle blocks */
-    for (; data_length >= 64; data_length -= 64) {
-        sha1_feed_block(ctx, data);
-        data += 64;
-    }
-    /* Store reminder of data */
-    if (data_length > 0) {
-        memcpy(ctx->buffer, data, data_length);
-        ctx->buffer_size = data_length;
-    }
-}
-
-void sha1_final(struct sha1_ctx* ctx, char* result) {
-    ctx->buffer[ctx->buffer_size] = 0x80;
-    ctx->buffer_size += 1;
-
-    if (ctx->buffer_size > 64 - 8) {
-        memset(ctx->buffer + ctx->buffer_size, 0, 64 - ctx->buffer_size);
-        sha1_feed_block(ctx, ctx->buffer);
-        ctx->buffer_size = 0;
-    }
-    /* Last block */
-    memset(ctx->buffer + ctx->buffer_size, 0, 64 - 8 - ctx->buffer_size);
-    ctx->buffer[64 - 8] = (uint8_t)((ctx->size >> 56) & 0xFF);
-    ctx->buffer[64 - 7] = (uint8_t)((ctx->size >> 48) & 0xFF);
-    ctx->buffer[64 - 6] = (uint8_t)((ctx->size >> 40) & 0xFF);
-    ctx->buffer[64 - 5] = (uint8_t)((ctx->size >> 32) & 0xFF);
-    ctx->buffer[64 - 4] = (uint8_t)((ctx->size >> 24) & 0xFF);
-    ctx->buffer[64 - 3] = (uint8_t)((ctx->size >> 16) & 0xFF);
-    ctx->buffer[64 - 2] = (uint8_t)((ctx->size >> 8) & 0xFF);
-    ctx->buffer[64 - 1] = (uint8_t)((ctx->size >> 0) & 0xFF);
-
-    sha1_feed_block(ctx, ctx->buffer);
-
-    /* Store binary digest in supplied buffer */
-    for (int i = 0; i < 5; i++) {
-        result[i * 4 + 0] = (uint8_t)((ctx->H[i] >> 24) & 0xFF);
-        result[i * 4 + 1] = (uint8_t)((ctx->H[i] >> 16) & 0xFF);
-        result[i * 4 + 2] = (uint8_t)((ctx->H[i] >> 8) & 0xFF);
-        result[i * 4 + 3] = (uint8_t)((ctx->H[i]) & 0xFF);
-    }
+  sha1_update(context, final_count, 8); /* Should cause a SHA1Transform() */
+  for (i = 0; i < 20; i++) {
+    result[i] =
+        (unsigned char)((context->H[i >> 2] >> ((3 - (i & 3)) * 8)) & 255);
+  }
+  /* Wipe variables */
+  memset(context, '\0', sizeof(*context));
+  memset(&final_count, '\0', sizeof(final_count));
 }

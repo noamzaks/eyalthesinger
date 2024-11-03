@@ -24,25 +24,27 @@ async def run_crack(cipher: str, wordlist: str, hash: str, jobs: int):
 
     process_line_counts = len(lines) // jobs + 1
 
-    for thread_number in range(jobs):
-        wordlist_name = f"wordlist{thread_number}.txt"
-        with open(wordlist_name, "wb") as f:
-            f.write(
-                b"\n".join(
-                    lines[
-                        process_line_counts * thread_number : process_line_counts
-                        * (thread_number + 1)
-                    ]
+    if jobs != 1:
+        for thread_number in range(jobs):
+            wordlist_name = f"wordlist{thread_number}.txt"
+            with open(wordlist_name, "wb") as f:
+                f.write(
+                    b"\n".join(
+                        lines[
+                            process_line_counts * thread_number : process_line_counts
+                            * (thread_number + 1)
+                        ]
+                    )
+                    + b"\n"
                 )
-                + b"\n"
-            )
 
     preprocessing_end = time.time()
 
     processes: List[asyncio.subprocess.Process] = []
     for thread_number in range(jobs):
-        wordlist_name = f"wordlist{thread_number}.txt"
+        wordlist_name = f"wordlist{thread_number}.txt" if jobs != 1 else wordlist
         with open(wordlist_name, "r") as f:
+            print(" ".join(["./sing", cipher, *hash.split(":")]))
             process = await asyncio.create_subprocess_exec(
                 "./sing", cipher, *hash.split(":"), stdin=f, stdout=subprocess.PIPE
             )
